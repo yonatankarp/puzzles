@@ -112,6 +112,40 @@ export const GAMES: GameMeta[] = [
         'Placing a queen rules out its whole row and column — drag along them rather than tapping each square.'
       ]
     }
+  },
+  {
+    id: 'comet',
+    code: 'CMT',
+    name: 'Comet',
+    tagline: 'Every square swept by exactly one comet.',
+    rules: 'Fly each comet straight out from its circle so that every square on the board is covered exactly once.',
+    accent: '#f5b544',
+    ready: true,
+    howTo: {
+      help: 'Every circle is the head of a comet that flies in one straight direction. A number is how long that comet is, counting the head; a circle with no number is one you work out. Cover every square exactly once. Drag from a circle to fly it, press space to step between circles, the arrow keys to fly one and enter for a comet of a single square, U to undo, H for a hint, R to restart.',
+      goal: 'Fly every comet so that each square on the board is covered exactly once.',
+      rules: [
+        { what: 'Every circle is the head of a comet, flying one straight way.', detail: 'Up, down, left or right — never diagonally, and never turning.' },
+        { what: 'A number is how long that comet is, counting the head itself.', detail: 'A circle with no number is one whose length you have to work out.' },
+        { what: 'Every square belongs to exactly one comet.', detail: 'No square left bare, and none claimed twice.' }
+      ],
+      controls: [
+        { keys: 'drag', what: 'From a circle, outwards — the tail follows your finger.' },
+        { keys: 'tap', what: 'A circle on its own is a comet one square long.' },
+        { keys: 'space', what: 'Step to the next circle' },
+        { keys: 'enter', what: 'Fly the circle you are on as a comet of one square' },
+        { keys: '← ↑ ↓ →', what: 'Fly the circle you are on that way' },
+        { keys: 'U', what: 'Take back the last comet' },
+        { keys: 'H', what: 'Hint — flies one comet correctly' },
+        { keys: 'R', what: 'Clear the board (the clock keeps running)' },
+        { keys: 'code', what: 'The code under the board names this exact puzzle. Share it to set someone the same board, or paste one you were sent.' }
+      ],
+      tips: [
+        'A tail can never pass through another circle, so a circle hemmed in by neighbours has very few ways to fly.',
+        'The square in a corner or against an edge is often reachable by only one comet — find it and that comet is settled.',
+        'Numbers are scarce on purpose. Most of the board is worked out from which squares are left over, not from what is written on it.'
+      ]
+    }
   }
 ];
 

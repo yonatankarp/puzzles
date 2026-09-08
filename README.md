@@ -22,7 +22,11 @@ npm run build          # typecheck, then bundle to dist/
 **Queens** — place one queen in every row, every column and every colour
 region, with no two queens touching, not even diagonally.
 
-Both have a daily board shared by everyone, four practice sizes, hints,
+**Comet** — every circle is the head of a comet flying one straight way; a
+number is its length, counting the head. Cover every square exactly once.
+Most circles carry no number, and working those out is the game.
+
+All three have a daily board shared by everyone, four practice sizes, hints,
 streaks, and results you can share.
 
 ## Generation

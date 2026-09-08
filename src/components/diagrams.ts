@@ -32,3 +32,20 @@ export const QUEENS_DIAGRAM = {
   /** Column of the queen in each row. */
   solution: [1, 3, 0, 2]
 };
+
+/*
+ * A three by three Comet board and its one answer. Every length is shown here,
+ * which a real board would not do -- a picture has to be readable at a glance,
+ * and a picture of a puzzle you would have to solve teaches nothing.
+ * test/diagrams.js proves this is a legal board with exactly one solution.
+ */
+export const COMET_DIAGRAM = {
+  n: 3,
+  clues: [
+    { cell: 2, len: 3 },
+    { cell: 5, len: 3 },
+    { cell: 7, len: 2 },
+    { cell: 6, len: 1 }
+  ],
+  solution: [[2, 1, 0], [5, 4, 3], [7, 8], [6]] as number[][]
+};

@@ -3,8 +3,9 @@
  * Checked with the games' own engines, not by eye.
  */
 import { makeEngine } from '../src/games/zip/engine.ts';
+import { solveAll, analyze } from '../src/games/comet/engine.ts';
 import { findSolutions } from '../src/games/queens/engine.ts';
-import { ZIP_DIAGRAM, QUEENS_DIAGRAM } from '../src/components/diagrams.ts';
+import { ZIP_DIAGRAM, QUEENS_DIAGRAM , COMET_DIAGRAM } from '../src/components/diagrams.ts';
 
 let checks = 0;
 let failures = 0;
@@ -71,6 +72,41 @@ const ok = (cond, msg) => { checks++; if (!cond) { failures++; console.log('  FA
   const solutions = findSolutions(n, regions, 3);
   ok(solutions.some(s => s.join(',') === solution.join(',')),
      'the Queens diagram shows a placement its own board does not allow');
+}
+
+// --- Comet -------------------------------------------------------------------
+{
+  const { n, clues, solution } = COMET_DIAGRAM;
+  ok(clues.length === solution.length, 'the Comet diagram has a comet with no answer');
+
+  // Every square exactly once: the whole of rule three.
+  const cover = new Map();
+  for (const cells of solution) for (const cell of cells) cover.set(cell, (cover.get(cell) ?? 0) + 1);
+  ok(cover.size === n * n, `the Comet diagram covers ${cover.size} of ${n * n} squares`);
+  ok([...cover.values()].every(v => v === 1), 'a square in the Comet diagram is claimed twice');
+
+  clues.forEach((clue, i) => {
+    const cells = solution[i];
+    ok(cells[0] === clue.cell, `Comet ${i} does not start at its own circle`);
+    ok(cells.length === clue.len, `Comet ${i} is ${cells.length} long but says ${clue.len}`);
+    // Straight, and in one direction only.
+    const rows = new Set(cells.map(c => (c / n) | 0));
+    const cols = new Set(cells.map(c => c % n));
+    ok(rows.size === 1 || cols.size === 1, `Comet ${i} is not a straight line`);
+    const line = [...cells].sort((a, b) => a - b);
+    for (let k = 1; k < line.length; k++) {
+      const step = rows.size === 1 ? 1 : n;
+      ok(line[k] - line[k - 1] === step, `Comet ${i} has a gap in it`);
+    }
+    // A tail may not pass through another circle.
+    const heads = new Set(clues.map(c => c.cell));
+    ok(cells.slice(1).every(c => !heads.has(c)), `Comet ${i} flies through another circle`);
+  });
+
+  // And the picture must show *the* answer, not one of several.
+  const solutions = solveAll(n, clues, 3);
+  ok(solutions.length === 1, `the Comet diagram board has ${solutions.length} solutions`);
+  ok(analyze(n, clues).solved, 'the Comet diagram board cannot be reasoned out');
 }
 
 console.log(failures === 0

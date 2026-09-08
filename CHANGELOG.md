@@ -2,6 +2,16 @@
 
 Generated from `src/changelog.ts` by `tools/make-changelog.js` — edit that, not this.
 
+## 2.7.0 — 2026-09-08
+
+A third game: Comet.
+
+### Added
+
+- Comet. Every circle on the board is the head of a comet that flies in one straight direction — up, down, left or right, never turning. A number tells you how long that comet is, counting the head; a circle without one is a length you have to work out. Every square has to end up swept by exactly one comet, with none left bare and none claimed twice. Drag out from a circle to fly it, tap it for a comet of a single square.
+- Most of a Comet board carries no numbers at all, and that is the game. The first version of it showed every length, and the board solved itself: each comet had one legal direction almost immediately, so there was nothing to work out and no difficulty worth measuring. Withholding lengths is what turns it into a puzzle — the generator now hides every number it can while the board still has one answer and can still be reasoned out to the end.
+- No Comet board ever needs a guess. The generator will not publish one that cannot be finished by reasoning, and its four difficulties are bands on how much of the harder reasoning is needed — the kind where you look at an empty square and work out which comet is the only one that could still reach it.
+
 ## 2.6.1 — 2026-09-08
 
 A daily board can be named but not replayed.

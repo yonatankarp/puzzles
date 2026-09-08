@@ -25,6 +25,16 @@ export interface Release {
 /** Newest first. */
 export const RELEASES: Release[] = [
   {
+    version: '2.7.0',
+    date: '2026-09-08',
+    summary: 'A third game: Comet.',
+    changes: [
+      { kind: 'added', text: 'Comet. Every circle on the board is the head of a comet that flies in one straight direction — up, down, left or right, never turning. A number tells you how long that comet is, counting the head; a circle without one is a length you have to work out. Every square has to end up swept by exactly one comet, with none left bare and none claimed twice. Drag out from a circle to fly it, tap it for a comet of a single square.' },
+      { kind: 'added', text: 'Most of a Comet board carries no numbers at all, and that is the game. The first version of it showed every length, and the board solved itself: each comet had one legal direction almost immediately, so there was nothing to work out and no difficulty worth measuring. Withholding lengths is what turns it into a puzzle — the generator now hides every number it can while the board still has one answer and can still be reasoned out to the end.' },
+      { kind: 'added', text: 'No Comet board ever needs a guess. The generator will not publish one that cannot be finished by reasoning, and its four difficulties are bands on how much of the harder reasoning is needed — the kind where you look at an empty square and work out which comet is the only one that could still reach it.' }
+    ]
+  },
+  {
     version: '2.6.1',
     date: '2026-09-08',
     summary: 'A daily board can be named but not replayed.',
