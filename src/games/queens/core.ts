@@ -30,6 +30,11 @@ export class QueensCore extends ShellCore<QueensPuzzle> {
   /* The order queens were placed in. Cell index alone cannot answer
    * "which was last", and both undo and the celebration need to know. */
   private order: number[] = [];
+  /* A drag that began by crossing a square off keeps crossing. Tapping a whole
+   * row out one square at a time is the slowest part of playing. */
+  private painting = false;
+  private lastPainted = -1;
+  private paintedRun = 0;
 
   constructor() { super('queens', 'medium'); }
 
@@ -111,24 +116,88 @@ export class QueensCore extends ShellCore<QueensPuzzle> {
       this.view!.invalidateRect();
       const cell = this.view!.cellAt(e.clientX, e.clientY);
       if (cell < 0) return;
+      const before = this.marks[cell] ?? 'empty';
       this.cycle(cell);
+      /*
+       * Only a drag that started by crossing a square off paints. Starting on a
+       * queen, or on the tap that promotes a cross to a queen, must not drag
+       * queens across the board or wipe work already done.
+       */
+      this.painting = before === 'empty' && this.marks[cell] === 'blocked';
+      this.lastPainted = cell;
+      this.paintedRun = 0;
+      if (this.painting) boardSvg.setPointerCapture(e.pointerId);
       e.preventDefault();
     };
+
+    const move = (e: PointerEvent) => {
+      if (!this.painting) return;
+      const cell = this.view!.cellAt(e.clientX, e.clientY);
+      if (cell < 0 || cell === this.lastPainted) return;
+      this.paintFrom(this.lastPainted, cell);
+      this.lastPainted = cell;
+      e.preventDefault();
+    };
+
+    const up = (e: PointerEvent) => {
+      if (this.painting && this.paintedRun > 0) {
+        this.announce(`${this.paintedRun} square${this.paintedRun === 1 ? '' : 's'} crossed off`);
+      }
+      this.painting = false;
+      this.lastPainted = -1;
+      if (boardSvg.hasPointerCapture(e.pointerId)) boardSvg.releasePointerCapture(e.pointerId);
+    };
+
     const resize = () => this.view?.invalidateRect();
     boardSvg.addEventListener('pointerdown', down);
+    boardSvg.addEventListener('pointermove', move);
+    boardSvg.addEventListener('pointerup', up);
+    boardSvg.addEventListener('pointercancel', up);
     window.addEventListener('resize', resize);
     window.addEventListener('scroll', resize, true);
     return [
       () => boardSvg.removeEventListener('pointerdown', down),
+      () => boardSvg.removeEventListener('pointermove', move),
+      () => boardSvg.removeEventListener('pointerup', up),
+      () => boardSvg.removeEventListener('pointercancel', up),
       () => window.removeEventListener('resize', resize),
       () => window.removeEventListener('scroll', resize, true)
     ];
+  }
+
+  /*
+   * Cross off every empty square between two cells. Walking the line rather
+   * than taking only the cell under the pointer means a fast flick along a row
+   * cannot leave gaps behind it -- the pointer is sampled, the grid is not.
+   */
+  private paintFrom(from: number, to: number): void {
+    if (this.phase !== 'playing' || this.solved || this.revealed || !this.puzzle) return;
+    const n = this.puzzle.n;
+    const r0 = Math.floor(from / n), c0 = from % n;
+    const r1 = Math.floor(to / n), c1 = to % n;
+    const steps = Math.max(Math.abs(r1 - r0), Math.abs(c1 - c0));
+    let painted = 0;
+    for (let i = 1; i <= steps; i++) {
+      const row = Math.round(r0 + ((r1 - r0) * i) / steps);
+      const col = Math.round(c0 + ((c1 - c0) * i) / steps);
+      const cell = row * n + col;
+      if (this.marks[cell] !== 'empty') continue;   // never over a queen or a cross
+      this.marks[cell] = 'blocked';
+      painted++;
+    }
+    if (!painted) return;
+    this.paintedRun += painted;
+    this.audio.step(this.order.length / Math.max(1, n));
+    this.redraw();
+    this.markDirty();
   }
 
   protected onRestart(): void {
     this.marks.fill('empty');
     this.conflicts = new Set();
     this.order = [];
+    this.painting = false;
+    this.lastPainted = -1;
   }
 
   /** Undo takes back the most recent queen; a cross is not worth undoing. */

@@ -25,6 +25,14 @@ export interface Release {
 /** Newest first. */
 export const RELEASES: Release[] = [
   {
+    version: '2.3.0',
+    date: '2026-09-08',
+    summary: 'Cross off a whole row in Queens with one drag.',
+    changes: [
+      { kind: 'added', text: 'Queens: drag across the board to cross squares off, instead of tapping them one at a time. Placing a queen rules out an entire row and column, and marking that by hand was the slowest part of a board. A drag that starts on an empty square keeps crossing; queens already placed are left where they are, and a fast flick leaves no gaps behind it.' }
+    ]
+  },
+  {
     version: '2.2.0',
     date: '2026-09-08',
     summary: 'Queens catches up with Zip, and the app stops calling itself Zip.',

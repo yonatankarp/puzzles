@@ -2,6 +2,14 @@
 
 Generated from `src/changelog.ts` by `tools/make-changelog.js` — edit that, not this.
 
+## 2.3.0 — 2026-09-08
+
+Cross off a whole row in Queens with one drag.
+
+### Added
+
+- Queens: drag across the board to cross squares off, instead of tapping them one at a time. Placing a queen rules out an entire row and column, and marking that by hand was the slowest part of a board. A drag that starts on an empty square keeps crossing; queens already placed are left where they are, and a fast flick leaves no gaps behind it.
+
 ## 2.2.0 — 2026-09-08
 
 Queens catches up with Zip, and the app stops calling itself Zip.

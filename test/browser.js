@@ -169,6 +169,19 @@ export async function launch({ autoplay = 'relaxed' } = {}) {
       await page.mouse('mouseReleased', points[points.length - 1].x, points[points.length - 1].y);
     },
 
+    /*
+     * A finger, not a mouse. Needs setup({ mobile: true }), which turns on touch
+     * emulation -- without it these dispatch into a page that has no touch at all.
+     */
+    async touchDrag(points) {
+      const at = p => [{ x: p.x, y: p.y, radiusX: 6, radiusY: 6, force: 1 }];
+      await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: at(points[0]) });
+      for (let i = 1; i < points.length; i++) {
+        await send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: at(points[i]) });
+      }
+      await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    },
+
     async screenshot(file) {
       const { data } = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
       fs.mkdirSync(path.dirname(file), { recursive: true });

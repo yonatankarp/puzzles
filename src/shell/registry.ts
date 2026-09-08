@@ -77,6 +77,7 @@ export const GAMES: GameMeta[] = [
       ],
       controls: [
         { keys: 'tap', what: 'Once to mark a square you have ruled out, again for a queen, again to clear.' },
+        { keys: 'drag', what: 'From an empty square, cross off a whole row or column in one go — queens already placed are left alone.' },
         { keys: 'U', what: 'Take back the last queen' },
         { keys: 'H', what: 'Hint — places the next queen' },
         { keys: 'R', what: 'Clear the board (the clock keeps running)' }
@@ -84,7 +85,8 @@ export const GAMES: GameMeta[] = [
       tips: [
         'Queens do not attack along whole diagonals here — only the eight squares immediately around them.',
         'Clashing queens are outlined in red, so you can see what is wrong rather than only that something is.',
-        'A region squeezed into a single row or column decides that row or column for you.'
+        'A region squeezed into a single row or column decides that row or column for you.',
+        'Placing a queen rules out its whole row and column — drag along them rather than tapping each square.'
       ]
     }
   }

@@ -1457,6 +1457,64 @@ section('Queens plays');
   ok(burst.last === burst.order,
      `the celebration would fire from cell ${burst.order}, not the finishing ${burst.last}`);
 
+  // Marking a ruled-out row a square at a time was the slowest part of a board,
+  // so a drag crosses the whole run. This needs real mouse input: the hooks go
+  // straight to the model and would never notice the gate or a sheet on top.
+  // The first-visit rules sheet sits over the board, and so does the ready gate.
+  // Both swallow real clicks, and neither is visible to a hook-driven test.
+  if (await page.eval("return !!document.getElementById('rules')")) {
+    await page.eval("document.getElementById('rulesClose').click(); return 1");
+    await sleep(400);
+  }
+  await page.eval('window.__queens.restart(); return 1');
+  await page.eval('window.__queens.start(); return 1');
+  for (let i = 0; i < 80; i++) {
+    if (await page.eval("return window.__queens.state.phase === 'playing'")) break;
+    await sleep(100);
+  }
+  const geo = await page.eval(`
+    const r = document.getElementById('board').getBoundingClientRect();
+    return { left: r.left, top: r.top, w: r.width, n: window.__queens.state.puzzle.n };`);
+  const cellAt = (row, col) => ({
+    x: Math.round(geo.left + (col + 0.5) * (geo.w / geo.n)),
+    y: Math.round(geo.top + (row + 0.5) * (geo.w / geo.n))
+  });
+
+  // Sampled sparsely on purpose: a fast flick must not leave gaps behind it.
+  await page.drag([cellAt(3, 0), cellAt(3, 3), cellAt(3, 7)]);
+  await sleep(300);
+  const row = await page.eval(`
+    const q = window.__queens, n = q.state.puzzle.n;
+    return q.state.marks.slice(3 * n, 4 * n);`);
+  ok(row.every(m => m === 'blocked'), `one drag left row 3 as ${row.join(',')}`);
+
+  await page.eval('window.__queens.restart(); return 1');
+  await sleep(200);
+  await page.eval(`
+    const q = window.__queens, n = q.state.puzzle.n;
+    q.cycle(5 * n + 4); q.cycle(5 * n + 4);
+    return 1;`);
+  await page.drag([cellAt(5, 0), cellAt(5, 3), cellAt(5, 7)]);
+  await sleep(300);
+  const guarded = await page.eval(`
+    const q = window.__queens, n = q.state.puzzle.n;
+    return q.state.marks.slice(5 * n, 6 * n);`);
+  ok(guarded[4] === 'queen', 'dragging across a placed queen wiped it');
+  ok(guarded.filter(m => m === 'blocked').length === guarded.length - 1,
+     `the drag left ${guarded.join(',')}`);
+
+  // A tap is still a tap: it must not paint the rest of the row.
+  await page.eval('window.__queens.restart(); return 1');
+  await sleep(200);
+  const spot = cellAt(1, 1);
+  await page.drag([spot, spot]);
+  await sleep(300);
+  const tapped = await page.eval(`
+    const q = window.__queens, n = q.state.puzzle.n;
+    return { here: q.state.marks[n + 1], crossed: q.state.marks.filter(m => m === 'blocked').length };`);
+  ok(tapped.here === 'blocked' && tapped.crossed === 1,
+     `a single tap crossed ${tapped.crossed} squares`);
+
   // The solution solves it, and solving is detected.
   const solved = await page.eval(`
     const z = window.__queens, p = z.state.puzzle;
@@ -1473,6 +1531,47 @@ section('Queens plays');
 }
 
 // --- how to play -------------------------------------------------------------
+section('crossing off with a finger');
+{
+  // The whole game is played on a phone. A touch drag is not a mouse drag: it
+  // is the gesture a browser is most likely to steal for scrolling instead.
+  const page = await launch();
+  await page.setup({ scheme: 'dark', width: 390, height: 844, mobile: true });
+  await page.goto(`${INDEX}#/queens`);
+  for (let i = 0; i < 100; i++) {
+    if (await page.eval('return !!(window.__queens && window.__queens.state.puzzle)')) break;
+    await sleep(50);
+  }
+  if (await page.eval("return !!document.getElementById('rules')")) {
+    await page.eval("document.getElementById('rulesClose').click(); return 1");
+    await sleep(400);
+  }
+  await page.eval('window.__queens.start(); return 1');
+  for (let i = 0; i < 80; i++) {
+    if (await page.eval("return window.__queens.state.phase === 'playing'")) break;
+    await sleep(100);
+  }
+  const geo = await page.eval(`
+    const r = document.getElementById('board').getBoundingClientRect();
+    return { left: r.left, top: r.top, w: r.width, n: window.__queens.state.puzzle.n };`);
+  const cell = (row, col) => ({
+    x: Math.round(geo.left + (col + 0.5) * (geo.w / geo.n)),
+    y: Math.round(geo.top + (row + 0.5) * (geo.w / geo.n))
+  });
+
+  const scrollBefore = await page.eval('return window.scrollY');
+  await page.touchDrag([cell(2, 0), cell(2, 3), cell(2, 7)]);
+  await sleep(400);
+  const row = await page.eval(`
+    const q = window.__queens, n = q.state.puzzle.n;
+    return q.state.marks.slice(2 * n, 3 * n);`);
+  ok(row.every(m => m === 'blocked'), `a touch drag left row 2 as ${row.join(',')}`);
+  ok(await page.eval('return window.scrollY') === scrollBefore,
+     'the touch drag scrolled the page instead of marking the board');
+  ok(page.consoleErrors.length === 0, `touch: ${page.consoleErrors.join(' | ')}`);
+  await page.close();
+}
+
 section('how to play');
 for (const [game, expect] of [['zip', 'Zip'], ['queens', 'Queens']]) {
   const page = await launch();
