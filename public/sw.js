@@ -14,10 +14,21 @@ self.addEventListener('install', event => {
   );
 });
 
+/*
+ * Drop our own superseded caches, and the ones the retired /zip/ app left on
+ * this origin. Named prefixes rather than "everything that is not me": caches
+ * are per-origin, not per-path, so an unqualified sweep here reaches into any
+ * other app published under the same domain -- this one really did delete the
+ * old game's cache out from under it.
+ */
+const MINE = /^(puzzles-|zip-)/;
+
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(names => Promise.all(names.filter(n => n !== CACHE).map(n => caches.delete(n))))
+      .then(names => Promise.all(
+        names.filter(n => n !== CACHE && MINE.test(n)).map(n => caches.delete(n))
+      ))
       .then(() => self.clients.claim())
   );
 });
