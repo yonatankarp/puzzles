@@ -1,0 +1,28 @@
+{
+  "name": "puzzles",
+  "version": "1.0.0",
+  "description": "Auto-generated puzzle games with guaranteed-unique solutions and measured difficulty.",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "./test/all.sh",
+    "build:test": "vite build --mode test --outDir dist-test"
+  },
+  "type": "module",
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2"
+  },
+  "private": true
+}
