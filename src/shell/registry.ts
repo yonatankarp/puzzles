@@ -29,6 +29,12 @@ export interface HowTo {
 
 export interface GameMeta {
   id: string;
+  /*
+   * Three letters, for the front of a board code. Short because the code gets
+   * read aloud and typed, and fixed forever once published: changing it would
+   * break every code already written down.
+   */
+  code: string;
   name: string;
   tagline: string;
   /** One sentence, for the index card. */
@@ -41,6 +47,7 @@ export interface GameMeta {
 export const GAMES: GameMeta[] = [
   {
     id: 'zip',
+    code: 'ZIP',
     name: 'Zip',
     tagline: 'One path through every square, in order.',
     rules: 'Draw a single line that visits every square exactly once, starting at 1 and taking the numbers in order without crossing a wall.',
@@ -61,7 +68,8 @@ export const GAMES: GameMeta[] = [
         { keys: '← ↑ ↓ →', what: 'Extend the line one square.' },
         { keys: 'U', what: 'Undo one square' },
         { keys: 'H', what: 'Hint — points at the next move' },
-        { keys: 'R', what: 'Clear the board (the clock keeps running)' }
+        { keys: 'R', what: 'Clear the board (the clock keeps running)' },
+        { keys: 'code', what: 'The code under the board names this exact puzzle. Share it to set someone the same board, or paste one you were sent.' }
       ],
       tips: [
         'The line only goes back the way it came. Touching an earlier part of it does nothing, so a stray movement cannot wipe your work.',
@@ -72,6 +80,7 @@ export const GAMES: GameMeta[] = [
   },
   {
     id: 'queens',
+    code: 'QNS',
     name: 'Queens',
     tagline: 'One per row, column and colour — none touching.',
     rules: 'Place one queen in every row, every column and every colour region, with no two queens touching, not even diagonally.',
@@ -93,7 +102,8 @@ export const GAMES: GameMeta[] = [
         { keys: 'X', what: 'Cross the square under the cursor off, or take the cross back.' },
         { keys: 'U', what: 'Take back the last queen' },
         { keys: 'H', what: 'Hint — places the next queen' },
-        { keys: 'R', what: 'Clear the board (the clock keeps running)' }
+        { keys: 'R', what: 'Clear the board (the clock keeps running)' },
+        { keys: 'code', what: 'The code under the board names this exact puzzle. Share it to set someone the same board, or paste one you were sent.' }
       ],
       tips: [
         'Queens do not attack along whole diagonals here — only the eight squares immediately around them.',
@@ -106,3 +116,5 @@ export const GAMES: GameMeta[] = [
 ];
 
 export const gameById = (id: string): GameMeta | undefined => GAMES.find(g => g.id === id);
+export const gameByCode = (code: string): GameMeta | undefined =>
+  GAMES.find(g => g.code === code.toUpperCase());

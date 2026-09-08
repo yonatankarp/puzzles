@@ -58,6 +58,16 @@ const boardOf = (page, game) => page.eval(`
   const p = ${hookOf(game)}.state.puzzle;
   return JSON.stringify(p.waypoints ?? p.regions) + '|' + JSON.stringify(p.walls ?? p.solution);`);
 
+/** The code on screen, once there is one again -- the chip goes while loading. */
+async function codeOn(page) {
+  for (let i = 0; i < 120; i++) {
+    const text = await page.eval("return document.getElementById('seedCode')?.textContent ?? null");
+    if (text) return text;
+    await sleep(50);
+  }
+  return null;
+}
+
 /** Wait until a specific tier's board has actually landed. Expert is slow. */
 async function settledOn(page, game, tier) {
   for (let i = 0; i < 200; i++) {
@@ -75,17 +85,18 @@ for (const game of ['zip', 'queens']) {
   ok(await page.eval("return !!document.getElementById('seedBtn')"),
      `${game}: the daily does not show its seed`);
   const daily = await page.eval("return document.getElementById('seedCode').textContent");
-  ok(/^[0-9A-Z]{1,7}$/.test(daily ?? ''), `${game}: the daily seed reads "${daily}"`);
+  // A code names its game and its difficulty, not just its number.
+  ok(/^[A-Z]{2,4}-[A-Z]-[0-9A-Z]{2,}$/.test(daily ?? ''), `${game}: the daily code reads "${daily}"`);
+  ok(daily.startsWith(game === 'zip' ? 'ZIP-D-' : 'QNS-D-'), `${game}: the daily code is "${daily}"`);
 
-  // The daily is the same board for everyone today, so its link is just the game.
   const dailyLink = await page.eval(`return ${hookOf(game)}.core.seedLink()`);
-  ok(dailyLink.endsWith(`#/${game}`), `${game}: the daily link is ${dailyLink}`);
+  ok(dailyLink.endsWith(`#/s/${daily}`), `${game}: the daily link is ${dailyLink}`);
 
   await page.eval(`${hookOf(game)}.setMode('practice'); return 1`);
   await sleep(1600);
   const code = await page.eval("return document.getElementById('seedCode').textContent");
-  ok(/^[0-9A-Z]{1,7}$/.test(code ?? ''), `${game}: the practice seed reads "${code}"`);
-  ok(code !== daily, `${game}: practice reused the daily's seed`);
+  ok(/^[A-Z]{2,4}-[EMHX]-[0-9A-Z]{2,}$/.test(code ?? ''), `${game}: the practice code reads "${code}"`);
+  ok(code !== daily, `${game}: practice reused the daily's code`);
   ok(page.consoleErrors.length === 0, `${game}: ${page.consoleErrors.join(' | ')}`);
   await page.close();
 }
@@ -103,7 +114,7 @@ section('a seed link carries its tier, or it is not a board');
   ok(await settledOn(page, 'zip', 'hard'), 'the hard board never arrived');
   const link = await page.eval('return window.__zip.core.seedLink()');
   const shared = await boardOf(page, 'zip');
-  ok(/#\/zip\/s\/hard\/[0-9A-Z]+$/.test(link), `the shared link is ${link}`);
+  ok(/#\/s\/ZIP-H-[0-9A-Z]+$/.test(link), `the shared link is ${link}`);
   await page.close();
 
   page = await open('zip');
@@ -119,7 +130,7 @@ section('a seed link carries its tier, or it is not a board');
      'a seed link handed the two players different boards');
   ok(await page.eval("return document.getElementById('seedCode').textContent") ===
      link.slice(link.lastIndexOf('/') + 1),
-     'the board on screen does not show the seed that was sent');
+     'the board on screen does not show the code that was sent');
   ok(page.consoleErrors.length === 0, `seed link: ${page.consoleErrors.join(' | ')}`);
   await page.close();
 }
@@ -161,8 +172,8 @@ section('the chip never names a board that is not on screen');
     link: window.__zip.core.seedLink()
   }`);
   ok(after.code !== beforeCode, 'the seed did not move when the board did');
-  ok(after.link.includes('/expert/') && after.link.includes(after.code),
-     `the settled link is ${after.link}`);
+  ok(/-X-/.test(after.code) && after.link.endsWith(after.code),
+     `the settled link is ${after.link} for code ${after.code}`);
   await page.close();
 }
 
@@ -199,10 +210,10 @@ section('the tier you tapped last is the tier you get');
 // --- broken links fail visibly, not silently ---------------------------------
 section('broken links fail visibly, not silently');
 {
-  // A seed that cannot be decoded still opens the game it names.
-  let page = await open('zip', '#/zip/s/medium/!!!');
-  ok(await page.eval('return !!window.__zip'), 'a mistyped seed threw us off the game');
-  ok(await page.eval("return !!document.getElementById('board')"), 'a mistyped seed left no board');
+  // A code that fails its check character still opens the game it names.
+  let page = await open('zip', '#/s/ZIP-M-BOGUS');
+  ok(await page.eval('return !!window.__zip'), 'a mistyped code threw us off the game');
+  ok(await page.eval("return !!document.getElementById('board')"), 'a mistyped code left no board');
   await page.close();
 
   // A tier this game does not have must say so rather than quietly serve medium.
@@ -220,13 +231,77 @@ section('broken links fail visibly, not silently');
   // A game that does not exist is not a game.
   page = await launch();
   await page.setup({ scheme: 'dark', width: 390, height: 844 });
-  await page.goto(`${INDEX}#/sudoku/s/medium/42`);
+  await page.goto(`${INDEX}#/s/XXX-M-1RGITXWK`);
   await sleep(1200);
   ok(await page.eval("return !!document.getElementById('index')"),
      'an unknown game rendered something other than the index');
-  ok(await page.eval("return localStorage.getItem('sudoku.seenRules')") === null,
+  ok(await page.eval("return Object.keys(localStorage).every(k => !k.startsWith('xxx.'))"),
      'an unknown game was recorded as having had its rules seen');
   ok(page.consoleErrors.length === 0, `unknown game: ${page.consoleErrors.join(' | ')}`);
+  await page.close();
+}
+
+// --- a code you were given can be typed in -----------------------------------
+section('a code you were given can be typed in');
+{
+  /*
+   * Showing a code and giving nowhere to put one is half a feature. The entry
+   * has to take what people actually paste -- a whole link, lower case, with
+   * spaces -- and it has to refuse a code that fails its check character rather
+   * than building the different-but-valid board that typo describes.
+   */
+  let page = await open('zip');
+  await page.eval("window.__zip.setMode('practice'); window.__zip.setDifficulty('hard'); return 1");
+  ok(await settledOn(page, 'zip', 'hard'), 'the hard board never arrived');
+  const code = await page.eval("return document.getElementById('seedCode').textContent");
+  const board = await boardOf(page, 'zip');
+  await page.close();
+
+  page = await open('zip');
+  await page.eval("window.__zip.setMode('practice'); window.__zip.setDifficulty('easy'); return 1");
+  ok(await settledOn(page, 'zip', 'easy'), 'the easy board never arrived');
+  ok(await page.eval("return !!document.getElementById('seedEnterBtn')"),
+     'there is nowhere to put a code you were given');
+
+  /*
+   * React keeps the input's value on the DOM node, so assigning .value directly
+   * never reaches it. Going through the prototype setter and firing an input
+   * event is what a real keystroke looks like from React's side.
+   */
+  const type = async (text) => {
+    await page.eval("document.getElementById('seedEnterBtn')?.click(); return 1");
+    await sleep(250);
+    const script =
+      "const i = document.getElementById('seedInput');" +
+      "const set = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;" +
+      "set.call(i, " + JSON.stringify(text) + ");" +
+      "i.dispatchEvent(new Event('input', { bubbles: true }));" +
+      "document.getElementById('seedGoBtn').click();" +
+      "return 1;";
+    return page.eval(script);
+  };
+
+  // Lower case, because that is what a phone keyboard and a paste will give.
+  await type(code.toLowerCase());
+  ok(await settledOn(page, 'zip', 'hard'), 'a typed code did not load its board');
+  ok(await boardOf(page, 'zip') === board, 'a typed code loaded a different board');
+  ok(await codeOn(page) === code, 'a typed code landed somewhere that shows a different code');
+
+  // One wrong character must be caught by the check character.
+  const typo = code.slice(0, -1) + (code.slice(-1) === 'A' ? 'B' : 'A');
+  await type(typo);
+  await sleep(400);
+  ok(/not a board code/i.test(await page.eval("return document.getElementById('seedProblem')?.textContent ?? ''")),
+     'a mistyped code was not refused');
+  ok(await codeOn(page) === code, 'a mistyped code moved us off the board we were on');
+
+  // A whole link pasted in, which is what gets sent in a message.
+  await page.eval("document.getElementById('seedInput') || document.getElementById('seedEnterBtn').click(); return 1");
+  await sleep(200);
+  await type(`https://example.com/puzzles/#/s/${code}`);
+  await sleep(600);
+  ok(await codeOn(page) === code, 'a pasted link was not understood');
+  ok(page.consoleErrors.length === 0, `code entry: ${page.consoleErrors.join(' | ')}`);
   await page.close();
 }
 

@@ -25,15 +25,19 @@ export default function Status({ snap, onToggleAutoNext, onShareSeed }: Props) {
         <div id="tierStats">{snap.difficultyLabel} · {snap.sizeLabel}</div>
         <div>best <b id="best">{snap.best === null ? '—' : formatTime(snap.best)}</b></div>
       </div>
+      {/* Its own row: the code and the box to paste one into are a pair, and
+          sharing a line with Auto-next wrapped both of them. */}
       <div className="status">
         <Seed snap={snap} onShare={onShareSeed} />
-        {snap.mode === 'practice' && (
+      </div>
+      {snap.mode === 'practice' && (
+        <div className="status">
           <button className="chip" id="autoBtn" aria-pressed={snap.autoNext} onClick={onToggleAutoNext}>
             <span className="dot" />Auto-next
           </button>
-        )}
-        {snap.mode === 'practice' && <div id="session">{summary}</div>}
-      </div>
+          <div id="session">{summary}</div>
+        </div>
+      )}
     </>
   );
 }

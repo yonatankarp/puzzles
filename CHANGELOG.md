@@ -2,6 +2,20 @@
 
 Generated from `src/changelog.ts` by `tools/make-changelog.js` — edit that, not this.
 
+## 2.6.0 — 2026-09-08
+
+The code under a board now names the board on its own, and you can type one in.
+
+### Added
+
+- Somewhere to put a code you were given. Paste the code or the whole link, in any case, and you get that exact board — your own difficulty setting does not override it.
+- A check character on the end of every code, so a code with one character mistyped is refused instead of quietly building the different-but-perfectly-valid board that the typo describes. Getting a board that is not the one you were sent, with nothing on screen looking wrong, is the one failure this feature cannot afford.
+
+### Changed
+
+- A board is identified by a code rather than a bare number — ZIP-M-109YCCQK says the game, the difficulty and the seed together. The number alone was never enough to find a board again: the same number is a different puzzle at every difficulty, so it only worked while the difficulty travelled separately in the link.
+- A daily board has a code too, and playing one from a code never touches the day’s record or the streak — it is that board, not your daily.
+
 ## 2.5.0 — 2026-09-08
 
 Every board now shows the number it was made from, so you can race someone on it.

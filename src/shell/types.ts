@@ -26,6 +26,8 @@ export interface Snapshot {
   /** The number the board on screen was generated from, and its short form. */
   seed: number;
   seedCode: string;
+  /** The whole board code: game, difficulty and seed together. */
+  boardCode: string;
   /** Which generator entry the seed was used with: a tier name, or 'daily'. */
   seedTier: string;
   ready: boolean;

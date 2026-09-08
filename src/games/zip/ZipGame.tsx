@@ -77,8 +77,7 @@ export default function ZipGame({ shared, seed, onBack }: Props) {
    */
   useEffect(() => {
     if (!seed) return;
-    core.setMode('practice');
-    core.loadTier(seed.tier, seed.seed);
+    core.loadBoardCode(seed.tier, seed.seed);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [core, seed?.tier, seed?.seed]);
 

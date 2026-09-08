@@ -25,6 +25,17 @@ export interface Release {
 /** Newest first. */
 export const RELEASES: Release[] = [
   {
+    version: '2.6.0',
+    date: '2026-09-08',
+    summary: 'The code under a board now names the board on its own, and you can type one in.',
+    changes: [
+      { kind: 'changed', text: 'A board is identified by a code rather than a bare number — ZIP-M-109YCCQK says the game, the difficulty and the seed together. The number alone was never enough to find a board again: the same number is a different puzzle at every difficulty, so it only worked while the difficulty travelled separately in the link.' },
+      { kind: 'added', text: 'Somewhere to put a code you were given. Paste the code or the whole link, in any case, and you get that exact board — your own difficulty setting does not override it.' },
+      { kind: 'added', text: 'A check character on the end of every code, so a code with one character mistyped is refused instead of quietly building the different-but-perfectly-valid board that the typo describes. Getting a board that is not the one you were sent, with nothing on screen looking wrong, is the one failure this feature cannot afford.' },
+      { kind: 'changed', text: 'A daily board has a code too, and playing one from a code never touches the day’s record or the streak — it is that board, not your daily.' }
+    ]
+  },
+  {
     version: '2.5.0',
     date: '2026-09-08',
     summary: 'Every board now shows the number it was made from, so you can race someone on it.',

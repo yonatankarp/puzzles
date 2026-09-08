@@ -8,7 +8,9 @@
  *   #/zip/help            how to play that game -- part of the game's own
  *                         address, so the link still works for someone
  *                         opening it cold
- *   #/zip/s/medium/1Z141Z4  one exact board, for playing someone else
+ *   #/s/ZIP-M-109YCCQK     one exact board, for playing someone else -- the
+ *                         code names the game and the difficulty as well as
+ *                         the seed, so it needs no path around it
  *   #changelog            what has changed, over whatever is underneath
  *
  * The tier in a seed link is not decoration. The generator is entered per tier,
@@ -17,7 +19,8 @@
  * them they were racing the same one.
  */
 import { gameById } from './registry.ts';
-import { decodeSeed, encodeSeed } from './seed.ts';
+import { decodeBoardCode, decodeSeed } from './seed.ts';
+import { gameByCode } from './registry.ts';
 
 export type Overlay = 'changelog' | 'help' | null;
 
@@ -41,6 +44,28 @@ const NOWHERE: Route = { game: null, overlay: null, seed: null };
 export function parseRoute(hash: string = location.hash): Route {
   const raw = hash.replace(/^#/, '');
   if (raw === 'changelog') return { game: lastGame, overlay: 'changelog', seed: null };
+
+  /*
+   * A board code carries its own game, so it sits at the root rather than under
+   * one. An unreadable code lands on the index rather than guessing a game.
+   */
+  const coded = /^\/s\/([A-Za-z0-9-]+)\/?$/.exec(raw);
+  if (coded) {
+    const board = decodeBoardCode(coded[1]!);
+    if (board) {
+      const meta = gameByCode(board.game);
+      if (meta) return { game: meta.id, overlay: null, seed: { tier: board.tier, seed: board.seed } };
+    }
+    /*
+     * The code did not survive its check character, but its first field still
+     * names a game readably. Open that game rather than dumping someone at the
+     * index: they know what they were sent, and the board code is on screen for
+     * them to compare against.
+     */
+    const prefix = /^([A-Za-z]{2,4})-/.exec(coded[1]!);
+    const guess = prefix && gameByCode(prefix[1]!);
+    return guess ? { game: guess.id, overlay: null, seed: null } : NOWHERE;
+  }
 
   const match = /^\/([a-z0-9-]+)(?:\/(.*))?$/i.exec(raw);
   if (!match) return NOWHERE;
@@ -71,6 +96,5 @@ export function parseRoute(hash: string = location.hash): Route {
 
 export const gameHref = (id: string) => `#/${id}`;
 export const helpHref = (id: string) => `#/${id}/help`;
-export const seedHref = (id: string, tier: string, seed: number) =>
-  `#/${id}/s/${tier}/${encodeSeed(seed)}`;
+export const codeHref = (code: string) => `#/s/${code}`;
 export const indexHref = '#/';

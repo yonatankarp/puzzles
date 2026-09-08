@@ -20,8 +20,9 @@ import {
 } from './daily.ts';
 import { read as readPref, write as writePref } from './prefs.ts';
 import type { Banner, Mode, Phase, ShareOutcome, Snapshot } from './types.ts';
-import { encodeSeed, randomSeed } from './seed.ts';
-import { gameHref, seedHref } from './route.ts';
+import { encodeBoardCode, encodeSeed, randomSeed } from './seed.ts';
+import { codeHref } from './route.ts';
+import { gameById } from './registry.ts';
 
 /*
  * Merge two hook objects without flattening their getters.
@@ -263,7 +264,10 @@ export abstract class ShellCore<P> {
       solved: this.solved,
       best: this.shownBest(),
       difficulty: tier,
-      difficultyLabel: this.tierLabel(tier),
+      difficultyLabel: this.seedTier === 'daily' && this.mode === 'practice'
+        ? 'Daily board'
+        : this.tierLabel(tier),
+      boardCode: this.boardCode(),
       difficulties: this.tiers(),
       sizeLabel: p.sizeLabel,
       progressColour: p.progressColour,
@@ -670,6 +674,55 @@ export abstract class ShellCore<P> {
     this.markDirty();
   }
 
+  /** Practice, without the new board that setMode would immediately request. */
+  private enterPractice(): void {
+    if (this.mode === 'practice') return;
+    this.mode = 'practice';
+    writePref(`${this.gameId}.mode`, 'practice');
+    this.markDirty();
+  }
+
+  /**
+   * Play a board someone identified by its code: their game, their difficulty,
+   * their seed. Nothing here reads the local difficulty preference, because the
+   * whole point is that the board is theirs and not ours.
+   */
+  loadBoardCode(tier: string, seed: number): void {
+    this.enterPractice();
+    if (tier !== 'daily') { this.loadTier(tier, seed); return; }
+
+    clearTimeout(this.advanceTimer);
+    this.busy = true;
+    this.setBanner({ text: 'Generating…', kind: 'wait' });
+    this.publish();
+    const seq = ++this.loadSeq;
+    void this.requestDaily(seed).then(puzzle => {
+      if (!this.alive || seq !== this.loadSeq) return;
+      this.busy = false;
+      if (!puzzle) {
+        this.setBanner({ text: `Seed ${encodeSeed(seed)} did not make a board`, kind: 'bad' });
+        return;
+      }
+      /*
+       * A daily board played from a code is not today's daily: it is whatever
+       * board that seed builds, and it must not touch the day's record or the
+       * streak. Practice mode is what keeps those out of it.
+       */
+      this.seed = seed;
+      this.seedTier = 'daily';
+      this.setBanner(null);
+      this.load(puzzle);
+    });
+  }
+
+  /** The code for the board on screen, or '' before one has arrived. */
+  boardCode(): string {
+    const meta = gameById(this.gameId);
+    if (!meta || !this.puzzle) return '';
+    const tier = this.mode === 'daily' ? 'daily' : (this.seedTier || this.difficulty);
+    return encodeBoardCode(meta.code, tier, this.seed) ?? '';
+  }
+
   setMode(mode: Mode): void {
     if (mode === this.mode) return;
     this.mode = mode;
@@ -718,10 +771,7 @@ export abstract class ShellCore<P> {
    * the same one for everybody.
    */
   seedLink(): string {
-    const base = location.origin + location.pathname;
-    return base + (this.mode === 'daily'
-      ? gameHref(this.gameId)
-      : seedHref(this.gameId, this.seedTier || this.difficulty, this.seed));
+    return location.origin + location.pathname + codeHref(this.boardCode());
   }
 
   /*
@@ -730,13 +780,11 @@ export abstract class ShellCore<P> {
    * coming from the tap.
    */
   async shareSeed(): Promise<ShareOutcome> {
-    const where = this.mode === 'daily'
-      ? `Daily #${this.day}`
-      : this.tierLabel(this.seedTier || this.difficulty);
-    const text = `${this.displayName} · ${where} · seed ${encodeSeed(this.seed)}\n${this.seedLink()}`;
+    const code = this.boardCode();
+    const text = `${this.displayName} · ${this.snapshot().difficultyLabel} · ${code}\n${this.seedLink()}`;
     if (typeof navigator.share === 'function') {
       try {
-        await navigator.share({ title: `${this.displayName} · seed ${encodeSeed(this.seed)}`, text });
+        await navigator.share({ title: `${this.displayName} · ${code}`, text });
         return 'shared';
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return 'cancelled';

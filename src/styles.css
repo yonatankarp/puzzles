@@ -517,10 +517,22 @@ kbd {
   .rules-heading { margin-top: 14px; }
 }
 
-/* The seed is a number people read out and type, so it is spaced and monospaced
-   rather than set in the body face where 0 and O are the same shape. */
+
+/* The board code, and somewhere to put one you were sent. */
+.seedbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%; }
 .chip.seed { font-size: 11.5px; }
 .chip.seed b {
   font: 600 11.5px/1 ui-monospace, "SF Mono", Menlo, monospace;
-  letter-spacing: .04em; color: var(--ink); margin-left: 3px;
+  letter-spacing: .03em; color: var(--ink);
 }
+.seed-entry { display: flex; align-items: center; gap: 6px; }
+#seedInput {
+  width: 16ch; min-width: 0; padding: 5px 9px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+  font: 600 11.5px/1.4 ui-monospace, "SF Mono", Menlo, monospace;
+  letter-spacing: .03em; text-transform: uppercase;
+}
+#seedInput::placeholder { color: var(--dim); font-weight: 400; letter-spacing: 0; }
+#seedInput:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; border-color: transparent; }
+#seedInput[aria-invalid="true"] { border-color: var(--bad); }
+.seed-problem { color: var(--bad); font-size: 11.5px; }
