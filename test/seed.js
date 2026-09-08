@@ -89,8 +89,11 @@ for (const game of ['zip', 'queens']) {
   ok(/^[A-Z]{2,4}-[A-Z]-[0-9A-Z]{2,}$/.test(daily ?? ''), `${game}: the daily code reads "${daily}"`);
   ok(daily.startsWith(game === 'zip' ? 'ZIP-D-' : 'QNS-D-'), `${game}: the daily code is "${daily}"`);
 
+  // The daily links to itself, not to a code that would refuse to open.
   const dailyLink = await page.eval(`return ${hookOf(game)}.core.seedLink()`);
-  ok(dailyLink.endsWith(`#/s/${daily}`), `${game}: the daily link is ${dailyLink}`);
+  ok(dailyLink.endsWith(`#/${game}`), `${game}: the daily link is ${dailyLink}`);
+  ok(await page.eval("return !document.getElementById('seedEnterBtn')"),
+     `${game}: the daily tab offers to replace its board with a code`);
 
   await page.eval(`${hookOf(game)}.setMode('practice'); return 1`);
   await sleep(1600);
@@ -302,6 +305,47 @@ section('a code you were given can be typed in');
   await sleep(600);
   ok(await codeOn(page) === code, 'a pasted link was not understood');
   ok(page.consoleErrors.length === 0, `code entry: ${page.consoleErrors.join(' | ')}`);
+  await page.close();
+}
+
+// --- a daily board cannot be replayed ----------------------------------------
+section('a daily board cannot be replayed');
+{
+  /*
+   * Not tidiness. Loading today's daily seed as a practice board lets you learn
+   * the board, then go to the daily tab and record a time for a puzzle you have
+   * already solved. The time would be real, the streak would be real, and
+   * nothing anywhere would show that the board had been seen before. The code
+   * is on screen so two people can check they are on the same daily; it is not
+   * a way to open one.
+   */
+  let page = await open('zip');
+  const daily = await page.eval("return document.getElementById('seedCode').textContent");
+  ok(/-D-/.test(daily), `the daily code is "${daily}"`);
+  const board = await boardOf(page, 'zip');
+  await page.close();
+
+  // The link a daily code makes must land on the daily, not on a copy of it.
+  page = await open('zip', `#/s/${daily}`);
+  await sleep(1000);
+  ok(await page.eval("return window.__zip.state.mode") === 'daily',
+     'a daily code opened something other than the daily');
+  ok(await boardOf(page, 'zip') === board, 'a daily code opened a replay of the daily');
+  await page.close();
+
+  // And the core refuses it however it is reached, not just through the UI.
+  page = await open('zip');
+  await page.eval("window.__zip.setMode('practice'); return 1");
+  await sleep(1400);
+  const was = await codeOn(page);
+  await page.eval("window.__zip.core.loadBoardCode('daily', 12345); return 1");
+  await sleep(700);
+  ok(/cannot be replayed/i.test(await page.eval("return document.getElementById('bannerText')?.textContent ?? ''")),
+     'replaying a daily was refused silently, or not at all');
+  ok(await codeOn(page) === was, 'a refused daily replay still changed the board');
+  ok(await page.eval("return window.__zip.state.mode") === 'practice',
+     'a refused daily replay moved the player out of practice');
+  ok(page.consoleErrors.length === 0, `daily replay: ${page.consoleErrors.join(' | ')}`);
   await page.close();
 }
 

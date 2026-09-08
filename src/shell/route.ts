@@ -54,6 +54,12 @@ export function parseRoute(hash: string = location.hash): Route {
     const board = decodeBoardCode(coded[1]!);
     if (board) {
       const meta = gameByCode(board.game);
+      /*
+       * A daily code names a board but does not open one -- replaying it would
+       * let someone learn today's daily and then record a time for it. The link
+       * still goes to that game, where its daily is the board in question.
+       */
+      if (meta && board.tier === 'daily') return { game: meta.id, overlay: null, seed: null };
       if (meta) return { game: meta.id, overlay: null, seed: { tier: board.tier, seed: board.seed } };
     }
     /*

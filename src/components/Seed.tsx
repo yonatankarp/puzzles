@@ -39,6 +39,15 @@ export default function Seed({ snap, onShare }: Props) {
 
   if (!snap.ready || !snap.boardCode) return null;
 
+  /*
+   * No entry on the daily tab. There is one daily board and it is not yours to
+   * choose -- and a code box there would be offering to replace it, which is
+   * the one thing that must not happen: practising today's board and then
+   * recording a time for it would leave a real time and a real streak with
+   * nothing anywhere showing the board had been seen before.
+   */
+  const canPlayCodes = snap.mode === 'practice';
+
   const share = () => {
     void onShare().then(outcome => {
       if (outcome === 'cancelled') return;
@@ -75,12 +84,14 @@ export default function Seed({ snap, onShare }: Props) {
         className="chip seed" id="seedBtn" onClick={share}
         /* The label changes to report the outcome, so it has to be spoken. */
         aria-live="polite"
-        title={`Share this exact board — ${snap.difficultyLabel}, code ${snap.boardCode}`}
+        title={snap.mode === 'daily'
+          ? `Today's board is ${snap.boardCode} — share it to check you are both on the same one`
+          : `Share this exact board — ${snap.difficultyLabel}, code ${snap.boardCode}`}
       >
         {told ?? <b id="seedCode">{snap.boardCode}</b>}
       </button>
 
-      {open ? (
+      {canPlayCodes && (open ? (
         <form className="seed-entry" onSubmit={play}>
           <input
             ref={inputRef} id="seedInput" value={entry} inputMode="text"
@@ -97,7 +108,7 @@ export default function Seed({ snap, onShare }: Props) {
         <button className="chip" id="seedEnterBtn" onClick={() => setOpen(true)}>
           Play a code
         </button>
-      )}
+      ))}
       {problem && <span className="seed-problem" id="seedProblem" role="alert">{problem}</span>}
     </div>
   );

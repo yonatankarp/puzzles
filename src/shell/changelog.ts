@@ -25,6 +25,14 @@ export interface Release {
 /** Newest first. */
 export const RELEASES: Release[] = [
   {
+    version: '2.6.1',
+    date: '2026-09-08',
+    summary: 'A daily board can be named but not replayed.',
+    changes: [
+      { kind: 'fixed', text: 'Yesterday’s release let a daily board be opened from its code as a practice board. That was a way to cheat the daily: learn the board first, then go to the daily tab and record a time for a puzzle already solved. The time would have been real, the streak would have been real, and nothing anywhere would have shown the board had been seen before. A daily code still names its board, so two people can check they are on the same one, but it will not open one — and the daily tab no longer offers to replace its board with a code.' }
+    ]
+  },
+  {
     version: '2.6.0',
     date: '2026-09-08',
     summary: 'The code under a board now names the board on its own, and you can type one in.',

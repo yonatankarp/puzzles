@@ -21,7 +21,7 @@ import {
 import { read as readPref, write as writePref } from './prefs.ts';
 import type { Banner, Mode, Phase, ShareOutcome, Snapshot } from './types.ts';
 import { encodeBoardCode, encodeSeed, randomSeed } from './seed.ts';
-import { codeHref } from './route.ts';
+import { codeHref, gameHref } from './route.ts';
 import { gameById } from './registry.ts';
 
 /*
@@ -688,31 +688,22 @@ export abstract class ShellCore<P> {
    * whole point is that the board is theirs and not ours.
    */
   loadBoardCode(tier: string, seed: number): void {
+    /*
+     * A daily board is not replayable, and the reason is not tidiness. Loading
+     * today's daily seed as a practice board lets you learn the board, then go
+     * to the daily tab and record a time for a puzzle you have already solved.
+     * The recorded time would be real, the streak would be real, and nothing
+     * anywhere would show that the board had been seen before. So a daily code
+     * identifies a board -- it is on screen to check you are both on the same
+     * one -- but it will not open one.
+     */
+    if (tier === 'daily') {
+      this.setBanner({ text: 'A daily board cannot be replayed', kind: 'bad' });
+      this.publish();
+      return;
+    }
     this.enterPractice();
-    if (tier !== 'daily') { this.loadTier(tier, seed); return; }
-
-    clearTimeout(this.advanceTimer);
-    this.busy = true;
-    this.setBanner({ text: 'Generating…', kind: 'wait' });
-    this.publish();
-    const seq = ++this.loadSeq;
-    void this.requestDaily(seed).then(puzzle => {
-      if (!this.alive || seq !== this.loadSeq) return;
-      this.busy = false;
-      if (!puzzle) {
-        this.setBanner({ text: `Seed ${encodeSeed(seed)} did not make a board`, kind: 'bad' });
-        return;
-      }
-      /*
-       * A daily board played from a code is not today's daily: it is whatever
-       * board that seed builds, and it must not touch the day's record or the
-       * streak. Practice mode is what keeps those out of it.
-       */
-      this.seed = seed;
-      this.seedTier = 'daily';
-      this.setBanner(null);
-      this.load(puzzle);
-    });
+    this.loadTier(tier, seed);
   }
 
   /** The code for the board on screen, or '' before one has arrived. */
@@ -771,7 +762,10 @@ export abstract class ShellCore<P> {
    * the same one for everybody.
    */
   seedLink(): string {
-    return location.origin + location.pathname + codeHref(this.boardCode());
+    const base = location.origin + location.pathname;
+    // The daily is the same board for everyone today, so it links to itself
+    // rather than to a code that would refuse to open anyway.
+    return base + (this.mode === 'daily' ? gameHref(this.gameId) : codeHref(this.boardCode()));
   }
 
   /*

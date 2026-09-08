@@ -2,6 +2,14 @@
 
 Generated from `src/changelog.ts` by `tools/make-changelog.js` — edit that, not this.
 
+## 2.6.1 — 2026-09-08
+
+A daily board can be named but not replayed.
+
+### Fixed
+
+- Yesterday’s release let a daily board be opened from its code as a practice board. That was a way to cheat the daily: learn the board first, then go to the daily tab and record a time for a puzzle already solved. The time would have been real, the streak would have been real, and nothing anywhere would have shown the board had been seen before. A daily code still names its board, so two people can check they are on the same one, but it will not open one — and the daily tab no longer offers to replace its board with a code.
+
 ## 2.6.0 — 2026-09-08
 
 The code under a board now names the board on its own, and you can type one in.
