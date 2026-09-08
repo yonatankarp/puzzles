@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { GameMeta } from '../shell/registry.ts';
-import { PATCH_DIAGRAM, QUEENS_DIAGRAM, ZIP_DIAGRAM } from './diagrams.ts';
+import { LAMPLIGHT_DIAGRAM, PATCH_DIAGRAM, QUEENS_DIAGRAM, ZIP_DIAGRAM } from './diagrams.ts';
 
 interface Props {
   game: GameMeta;
@@ -135,6 +135,61 @@ function Diagram({ id }: { id: string }) {
                   fontSize="16" fontWeight="700" fill="var(--accent-ink)">{i + 1}</text>
           </g>
         ))}
+      </svg>
+    );
+  }
+
+  if (id === 'lamplight') {
+    const { n, board, lamps } = LAMPLIGHT_DIAGRAM;
+    const size = 120 / n;
+    const steps = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+    const mid = (cell: number) => ({
+      x: (cell % n) * size + size / 2,
+      y: ((cell / n) | 0) * size + size / 2
+    });
+    // Walk each beam the way the game does, so the picture cannot drift.
+    const beams = lamps.map(lamp => {
+      const [dr, dc] = steps[lamp.dir]!;
+      let cell = lamp.cell;
+      for (;;) {
+        const r = ((cell / n) | 0) + dr;
+        const c = (cell % n) + dc;
+        if (r < 0 || c < 0 || r >= n || c >= n) break;
+        const next = r * n + c;
+        if (board[next] !== -1) break;
+        cell = next;
+      }
+      return { from: lamp.cell, to: cell, dir: lamp.dir };
+    });
+    return (
+      <svg className="diagram" viewBox="-6 -6 132 132" role="img"
+           aria-label="A four by four board where five lamps light every square exactly once, each beam running until it meets another lamp or the edge.">
+        <rect x="0" y="0" width="120" height="120" rx="8"
+              fill="var(--board)" stroke="var(--line)" strokeWidth="2" />
+        {board.map((what, cell) => what === -1 || what === -3 ? (
+          <rect key={cell} x={(cell % n) * size + 1.5} y={((cell / n) | 0) * size + 1.5}
+                width={size - 3} height={size - 3} rx="5" fill="var(--cell-lit)" />
+        ) : null)}
+        {beams.map((beam, i) => (
+          <line key={i} x1={mid(beam.from).x} y1={mid(beam.from).y}
+                x2={mid(beam.to).x} y2={mid(beam.to).y}
+                stroke="var(--beam)" strokeWidth={size * 0.42} strokeLinecap="round" opacity="0.6" />
+        ))}
+        <g stroke="var(--line)" strokeWidth="1.2" opacity="0.4">
+          {[1, 2, 3].map(i => <line key={`v${i}`} x1={i * size} y1="4" x2={i * size} y2="116" />)}
+          {[1, 2, 3].map(i => <line key={`h${i}`} x1="4" y1={i * size} x2="116" y2={i * size} />)}
+        </g>
+        {lamps.map(lamp => {
+          const at = mid(lamp.cell);
+          const [dr, dc] = steps[lamp.dir]!;
+          return (
+            <g key={lamp.cell}>
+              <line x1={at.x} y1={at.y} x2={at.x + dc * size * 0.32} y2={at.y + dr * size * 0.32}
+                    stroke="var(--accent)" strokeWidth="4" strokeLinecap="round" />
+              <circle cx={at.x} cy={at.y} r={size * 0.22} fill="var(--accent)" />
+            </g>
+          );
+        })}
       </svg>
     );
   }

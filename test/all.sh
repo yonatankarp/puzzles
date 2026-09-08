@@ -9,6 +9,7 @@ node test/verify.js "${1:-200}"
 node test/play.js 40
 node test/queens.js 40
 node test/patch.js 20
+node test/lamplight.js 20
 node test/daily.js
 node test/changelog.js
 node test/diagrams.js
@@ -20,3 +21,4 @@ node test/queens-feel.js
 node test/gate.js
 node test/seed.js
 node test/patch-play.js
+node test/lamplight-play.js

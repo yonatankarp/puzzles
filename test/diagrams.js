@@ -4,8 +4,9 @@
  */
 import { makeEngine } from '../src/games/zip/engine.ts';
 import { solveAll, analyze, cellsOf } from '../src/games/patch/engine.ts';
+import { solveAll as lampSolve, analyze as lampAnalyze, beamOf, WALL as LAMP_WALL } from '../src/games/lamplight/engine.ts';
 import { findSolutions } from '../src/games/queens/engine.ts';
-import { ZIP_DIAGRAM, QUEENS_DIAGRAM, PATCH_DIAGRAM } from '../src/components/diagrams.ts';
+import { ZIP_DIAGRAM, QUEENS_DIAGRAM, PATCH_DIAGRAM, LAMPLIGHT_DIAGRAM } from '../src/components/diagrams.ts';
 
 let checks = 0;
 let failures = 0;
@@ -97,6 +98,35 @@ const ok = (cond, msg) => { checks++; if (!cond) { failures++; console.log('  FA
 
   ok(solveAll(n, clues, 3).length === 1, 'the Patch diagram board does not have exactly one solution');
   ok(analyze(n, clues).solved, 'the Patch diagram board cannot be reasoned out');
+}
+
+// --- Lamplight ---------------------------------------------------------------
+{
+  const { n, board, lamps } = LAMPLIGHT_DIAGRAM;
+  const puzzle = { n, board, lamps, hard: 0, openers: 0 };
+
+  // Every lamp in the picture is a lamp on the board it claims to be.
+  for (const lamp of lamps) {
+    ok(board[lamp.cell] === -3, `the Lamplight diagram has a lamp on square ${lamp.cell} that is not one`);
+  }
+  ok(board.filter(x => x === -3).length === lamps.length,
+     'the Lamplight diagram has lamps its answer does not aim');
+
+  // Rule 3, both halves: every non-wall square lit, exactly once.
+  const counts = new Map();
+  for (const lamp of lamps) {
+    for (const cell of beamOf(n, board, lamp.cell, lamp.dir)) {
+      counts.set(cell, (counts.get(cell) ?? 0) + 1);
+    }
+  }
+  const need = board.filter(x => x !== LAMP_WALL).length;
+  ok(counts.size === need, `the Lamplight diagram lights ${counts.size} of ${need} squares`);
+  ok([...counts.values()].every(v => v === 1), 'a square in the Lamplight diagram is lit twice');
+
+  ok(lampSolve(puzzle, 3).length === 1, 'the Lamplight diagram board does not have exactly one solution');
+  const verdict = lampAnalyze(puzzle);
+  ok(verdict.solved, 'the Lamplight diagram board cannot be reasoned out');
+  ok(verdict.openers >= 1, 'the Lamplight diagram board has no way in');
 }
 
 console.log(failures === 0

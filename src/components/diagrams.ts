@@ -51,3 +51,22 @@ export const PATCH_DIAGRAM = {
     { r0: 2, c0: 1, h: 1, w: 2 }
   ]
 };
+
+/*
+ * A four by four Lamplight board and its one answer, made by the same generator
+ * that makes the real ones and held to the same bar: one solution, reasonable
+ * to the end, and at least one lamp forced before anything is touched.
+ * test/diagrams.js checks all of that with the game's own engine.
+ */
+export const LAMPLIGHT_DIAGRAM = {
+  n: 4,
+  /* -3 is a lamp, -1 an empty square. */
+  board: [-3, -3, -1, -3, -3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -3, -1],
+  lamps: [
+    { cell: 1, dir: 1 },
+    { cell: 14, dir: 0 },
+    { cell: 4, dir: 1 },
+    { cell: 3, dir: 1 },
+    { cell: 0, dir: 3 }
+  ]
+};

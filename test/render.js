@@ -1587,7 +1587,7 @@ section('crossing off with a finger');
 }
 
 section('how to play');
-for (const [game, expect] of [['zip', 'Zip'], ['queens', 'Queens'], ['patch', 'Patch']]) {
+for (const [game, expect] of [['zip', 'Zip'], ['queens', 'Queens'], ['patch', 'Patch'], ['lamplight', 'Lamplight']]) {
   const page = await launch();
   await page.setup({ scheme: 'dark', width: 520, height: 900 });
   await page.goto(`${INDEX}#/${game}`);

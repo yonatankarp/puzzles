@@ -82,6 +82,21 @@ async function codeBecomes(page, want) {
   return false;
 }
 
+/*
+ * The code for a board of this tier, once the chip itself says so. The core can
+ * be on the new board a frame or two before React has published it, so reading
+ * the chip the moment the core settles hands back the previous board's code --
+ * rarely on an idle machine, reliably when the whole suite is running.
+ */
+async function codeForTier(page, letter) {
+  for (let i = 0; i < 160; i++) {
+    const text = await page.eval("return document.getElementById('seedCode')?.textContent ?? ''");
+    if (new RegExp(`^[A-Z]{2,4}-${letter}-`).test(text)) return text;
+    await sleep(50);
+  }
+  return await page.eval("return document.getElementById('seedCode')?.textContent ?? ''");
+}
+
 /** Wait until a specific tier's board has actually landed. Expert is slow. */
 async function settledOn(page, game, tier) {
   for (let i = 0; i < 200; i++) {
@@ -111,7 +126,8 @@ for (const game of ['zip', 'queens']) {
 
   await page.eval(`${hookOf(game)}.setMode('practice'); return 1`);
   await sleep(1600);
-  const code = await page.eval("return document.getElementById('seedCode').textContent");
+  // Wait for a practice code to be on the chip, not merely for time to pass.
+  const code = await codeForTier(page, '[EMHX]');
   ok(/^[A-Z]{2,4}-[EMHX]-[0-9A-Z]{2,}$/.test(code ?? ''), `${game}: the practice code reads "${code}"`);
   ok(code !== daily, `${game}: practice reused the daily's code`);
   ok(page.consoleErrors.length === 0, `${game}: ${page.consoleErrors.join(' | ')}`);
@@ -270,7 +286,7 @@ section('a code you were given can be typed in');
   let page = await open('zip');
   await page.eval("window.__zip.setMode('practice'); window.__zip.setDifficulty('hard'); return 1");
   ok(await settledOn(page, 'zip', 'hard'), 'the hard board never arrived');
-  const code = await page.eval("return document.getElementById('seedCode').textContent");
+  const code = await codeForTier(page, 'H');
   const board = await boardOf(page, 'zip');
   await page.close();
 

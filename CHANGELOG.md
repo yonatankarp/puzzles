@@ -2,6 +2,19 @@
 
 Generated from `src/changelog.ts` by `tools/make-changelog.js` — edit that, not this.
 
+## 2.9.0 — 2026-09-09
+
+A fourth game: Lamplight.
+
+### Added
+
+- Lamplight. Every lamp shines one way, and its beam runs until it meets a wall, another lamp, or the edge. Turn them so every dark square ends up lit and none is lit twice. Drag out of a lamp to aim it — the beam swings with your finger — or tap to turn it round the compass.
+- It was designed backwards from the gesture, which the two games I threw away on the way here were not. The move is turning a lamp, the answer is light arriving, and nothing about a beam is hidden: its length is on the board, so you can see how far it will reach before you commit. Every board has one answer, needs no guessing, and has at least one lamp forced before you touch anything — somewhere to start is a condition of publishing, not a hope.
+
+### Changed
+
+- No lamp comes pre-aimed. An early version handed out a few locked lamps because the generator could otherwise make only two boards in two hundred with a single answer; fixing how boards are laid out solved that as a side effect, and the locked lamps had stayed on long after the reason for them was gone.
+
 ## 2.8.0 — 2026-09-08
 
 Comet is gone. Patch takes its place.

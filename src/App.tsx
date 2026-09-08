@@ -6,6 +6,7 @@ import Rules from './components/Rules.tsx';
 import ZipGame from './games/zip/ZipGame.tsx';
 import QueensGame from './games/queens/QueensGame.tsx';
 import PatchGame from './games/patch/PatchGame.tsx';
+import LamplightGame from './games/lamplight/LamplightGame.tsx';
 import { CURRENT_VERSION } from './shell/changelog.ts';
 import { gameById } from './shell/registry.ts';
 import { gameHref, helpHref, indexHref, parseRoute, rememberGame } from './shell/route.ts';
@@ -108,6 +109,7 @@ export default function App() {
       {meta?.id === 'zip' && <ZipGame key="zip" shared={shared} seed={route.seed} onBack={() => go(indexHref)} />}
       {meta?.id === 'queens' && <QueensGame key="queens" shared={shared} seed={route.seed} onBack={() => go(indexHref)} />}
       {meta?.id === 'patch' && <PatchGame key="patch" shared={shared} seed={route.seed} onBack={() => go(indexHref)} />}
+      {meta?.id === 'lamplight' && <LamplightGame key="lamplight" shared={shared} seed={route.seed} onBack={() => go(indexHref)} />}
       {!meta && (
         <div className="wrap">
           <Header soundMode={sound} onCycleSound={cycleSound} onCycleTheme={cycleTheme} />

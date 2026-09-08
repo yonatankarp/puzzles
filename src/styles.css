@@ -29,6 +29,13 @@
   --wall: #c2cbdd;
   --good: #35d07f;
   --bad: #ff6259;
+  /* Lamplight: a dark room, warm light, cold stone. */
+  --beam: #ffd27a;
+  --wall-fill: #333d4c;
+  --cell-dark: #161d27;
+  --cell-lit: #241f16;
+  --cell-won: #16281d;
+  --lamp-off: #3a424f;
   --shadow: 0 14px 44px rgba(0, 0, 0, .5);
   --count-shadow: 0 8px 30px rgba(0, 0, 0, .55);
 }
@@ -39,11 +46,23 @@
     --accent: #f0a92c; --accent-ink: #221a05; --ring: #a8660a;
     --path: #2f6bff; --path-ink: #ffffff; --path-btn: #2455d6; --wall: #2c3446;
     --good: #0f7a44; --bad: #c62f26;
+    --beam: #d99327;
+    --wall-fill: #c3cbd8;
+    --cell-dark: #eef1f6;
+    --cell-lit: #fdf0d6;
+    --cell-won: #ddf4e5;
+    --lamp-off: #aab4c3;
     --shadow: 0 14px 40px rgba(20, 30, 60, .12);
     --count-shadow: 0 8px 26px rgba(20, 30, 60, .18);
   }
 }
 :root[data-theme="light"] {
+  --beam: #d99327;
+  --wall-fill: #c3cbd8;
+  --cell-dark: #eef1f6;
+  --cell-lit: #fdf0d6;
+  --cell-won: #ddf4e5;
+  --lamp-off: #aab4c3;
   --bg: #f2f4f8; --panel: #ffffff; --board: #ffffff; --line: #e0e5ef;
   --track: #b0bacd; --ink: #121722; --dim: #5f6878;
   --accent: #f0a92c; --accent-ink: #221a05; --ring: #a8660a;

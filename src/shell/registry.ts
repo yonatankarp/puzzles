@@ -146,6 +146,40 @@ export const GAMES: GameMeta[] = [
         'Drawing a box over patches you have already made rubs them out, so you can correct yourself without undoing first.'
       ]
     }
+  },
+  {
+    id: 'lamplight',
+    code: 'LMP',
+    name: 'Lamplight',
+    tagline: 'Every dark square lit, and none lit twice.',
+    rules: 'Turn each lamp so its beam lights every dark square on the board exactly once.',
+    accent: '#f5b544',
+    ready: true,
+    howTo: {
+      help: 'Every lamp shines one way — up, down, left or right — and its beam runs until it meets a wall, another lamp, or the edge. Turn the lamps so every square that is not a wall ends up lit, and none is lit twice. Drag out of a lamp to aim it, or tap it to turn it round the compass. With the keyboard, space steps between lamps, the arrows shine the one you are on, enter turns it; U undoes, H gives a hint, R restarts.',
+      goal: 'Turn every lamp so the whole room is lit, with no square lit twice.',
+      rules: [
+        { what: 'Every lamp shines one way.', detail: 'Up, down, left or right — never diagonally.' },
+        { what: 'Its beam runs until something stops it.', detail: 'A wall, another lamp, or the edge of the board. Nothing is hidden: you can see how far a beam will reach before you commit to it.' },
+        { what: 'Every dark square must be lit, and none lit twice.', detail: 'Walls are not lit at all. Two beams crossing the same square glow red.' }
+      ],
+      controls: [
+        { keys: 'drag', what: 'Out of a lamp, the way you want it to shine.' },
+        { keys: 'tap', what: 'Turns a lamp clockwise; one tap past the last way round puts it out.' },
+        { keys: 'space', what: 'Step to the next lamp' },
+        { keys: '← ↑ ↓ →', what: 'Shine the lamp you are on that way' },
+        { keys: 'enter', what: 'Turn the lamp you are on round the compass' },
+        { keys: 'U', what: 'Put out the lamp you turned last' },
+        { keys: 'H', what: 'Hint — aims one lamp correctly' },
+        { keys: 'R', what: 'Put every lamp out (the clock keeps running)' },
+        { keys: 'code', what: 'The code under the board names this exact puzzle. Share it to set someone the same board, or paste one you were sent.' }
+      ],
+      tips: [
+        'A lamp boxed in on three sides has only one way to shine. Those are the way into every board.',
+        'Look at the dark squares, not only at the lamps: a square in a corner can often be reached by just one lamp, and that settles it.',
+        'A wall behind a lamp is as useful as a wall in front of it — it is what stops somebody else’s beam arriving.'
+      ]
+    }
   }
 ];
 

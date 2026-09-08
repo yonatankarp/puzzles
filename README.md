@@ -26,6 +26,10 @@ region, with no two queens touching, not even diagonally.
 squares as the number says, until the whole board is covered. Which shape a
 number takes is the puzzle: a 6 can be 1×6, 2×3, 3×2 or 6×1.
 
+**Lamplight** — every lamp shines one way and its beam runs until it meets a
+wall, another lamp, or the edge. Turn them so every dark square is lit, and
+none lit twice.
+
 All three have a daily board shared by everyone, four practice sizes, hints,
 streaks, and results you can share.
 
