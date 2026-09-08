@@ -95,7 +95,8 @@ export default function QueensGame({ shared, onBack }: Props) {
           </button>
         </div>
         <div className="hint">
-          tap a square to mark it, again for a queen · <kbd>U</kbd> undo ·{' '}
+          tap a square to mark it, again for a queen · drag to cross off a row ·{' '}
+          <kbd>U</kbd> undo ·{' '}
           <kbd>H</kbd> hint · <kbd>R</kbd> restart · <kbd>N</kbd> new
         </div>
       </div>
