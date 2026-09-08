@@ -2,6 +2,15 @@
 
 Generated from `src/changelog.ts` by `tools/make-changelog.js` — edit that, not this.
 
+## 2.1.0 — 2026-09-08
+
+Every game now explains itself.
+
+### Added
+
+- How to play, with the rules, the controls, a worked picture and a few things that are true but not obvious. It appears once the first time you open a game, and lives behind the ? in the header after that.
+- A game's rules have their own address, so you can send someone the rules to the game rather than the rules to nothing.
+
 ## 2.0.0 — 2026-09-08
 
 Zip is now one of a collection, and Queens has joined it.

@@ -25,6 +25,15 @@ export interface Release {
 /** Newest first. */
 export const RELEASES: Release[] = [
   {
+    version: '2.1.0',
+    date: '2026-09-08',
+    summary: 'Every game now explains itself.',
+    changes: [
+      { kind: 'added', text: 'How to play, with the rules, the controls, a worked picture and a few things that are true but not obvious. It appears once the first time you open a game, and lives behind the ? in the header after that.' },
+      { kind: 'added', text: "A game's rules have their own address, so you can send someone the rules to the game rather than the rules to nothing." }
+    ]
+  },
+  {
     version: '2.0.0',
     date: '2026-09-08',
     summary: 'Zip is now one of a collection, and Queens has joined it.',

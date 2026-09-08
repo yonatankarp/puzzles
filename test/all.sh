@@ -10,6 +10,7 @@ node test/play.js 40
 node test/queens.js 40
 node test/daily.js
 node test/changelog.js
+node test/diagrams.js
 npm run build
 npm run build:test
 node test/render.js

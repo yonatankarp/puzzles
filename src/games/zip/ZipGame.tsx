@@ -18,6 +18,7 @@ export interface SharedChrome {
   version: string;
   unseen: boolean;
   onOpenChangelog: () => void;
+  onHelp: () => void;
 }
 
 interface Props {
@@ -77,6 +78,7 @@ export default function ZipGame({ shared, onBack }: Props) {
           soundMode={shared.soundMode}
           onCycleSound={shared.onCycleSound}
           onCycleTheme={shared.onCycleTheme}
+          onHelp={shared.onHelp}
         />
         <Modes mode={snap.mode} onPick={mode => core.setMode(mode)} />
         {snap.mode === 'practice'

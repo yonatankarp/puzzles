@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import Header from './components/Header.tsx';
 import Index from './components/Index.tsx';
 import Changelog from './components/Changelog.tsx';
+import Rules from './components/Rules.tsx';
 import ZipGame from './games/zip/ZipGame.tsx';
 import QueensGame from './games/queens/QueensGame.tsx';
 import { CURRENT_VERSION } from './shell/changelog.ts';
 import { gameById } from './shell/registry.ts';
-import { indexHref, parseRoute, rememberGame } from './shell/route.ts';
+import { gameHref, helpHref, indexHref, parseRoute, rememberGame } from './shell/route.ts';
 import { applyTheme, read as readPref, write as writePref, type Theme } from './shell/prefs.ts';
 import { SOUND_MODES, type SoundMode } from './shell/audio.ts';
 
@@ -47,19 +48,48 @@ export default function App() {
     writePref('app.sound', next);
   };
 
+  const openOverlay = (name: 'changelog' | 'help', game?: string | null) => {
+    // Help is always a game's help; there is no such page without one.
+    if (name === 'help' && !game) return;
+    const hash = name === 'help' ? helpHref(game!) : `#${name}`;
+    history.pushState({ overlay: name }, '', hash);
+    setRoute(parseRoute(hash));
+  };
+
+  /*
+   * Only step back if an overlay is what put an entry on the stack. Someone
+   * arriving on a shared link has no entry of ours behind them, and going back
+   * would take them off the site altogether -- so close onto whatever the
+   * overlay was covering, which for #/zip/help is the game itself.
+   */
+  const closeOverlay = () => {
+    if (history.state?.overlay) return history.back();
+    const hash = route.game ? gameHref(route.game) : '';
+    history.replaceState(null, '', location.pathname + location.search + hash);
+    setRoute(parseRoute(hash));
+  };
+
   const openChangelog = () => {
     writePref('app.seenVersion', CURRENT_VERSION);
     setSeenVersion(CURRENT_VERSION);
-    history.pushState({ zip: 'changelog' }, '', '#changelog');
-    setRoute(parseRoute('#changelog'));
+    openOverlay('changelog');
   };
-  const closeChangelog = () => {
-    if (history.state?.zip === 'changelog') history.back();
-    else {
-      history.replaceState(null, '', location.pathname + location.search);
-      setRoute(parseRoute(''));
-    }
-  };
+
+  /*
+   * Show a game's rules once, unasked, the first time it is opened -- which is
+   * the only moment they are actually wanted. After that the header button is
+   * there for anyone who wants them again.
+   */
+  useEffect(() => {
+    if (!route.game) return;
+    // Reading them counts however you arrived -- including on someone else's
+    // link. Miss this and closing that link just opens them again, forever.
+    if (route.overlay === 'help') return writePref(`${route.game}.seenRules`, '1');
+    if (route.overlay) return;
+    if (readPref(`${route.game}.seenRules`) !== null) return;
+    writePref(`${route.game}.seenRules`, '1');
+    openOverlay('help', route.game);
+  }, [route.game, route.overlay]);
 
   const meta = route.game ? gameById(route.game) : undefined;
   const shared = {
@@ -68,7 +98,8 @@ export default function App() {
     onCycleTheme: cycleTheme,
     version: CURRENT_VERSION,
     unseen: seenVersion !== CURRENT_VERSION,
-    onOpenChangelog: openChangelog
+    onOpenChangelog: openChangelog,
+    onHelp: () => openOverlay('help', route.game)
   };
 
   return (
@@ -88,7 +119,8 @@ export default function App() {
           </div>
         </div>
       )}
-      {route.changelog && <Changelog onClose={closeChangelog} />}
+      {route.overlay === 'changelog' && <Changelog onClose={closeOverlay} />}
+      {route.overlay === 'help' && meta && <Rules game={meta} onClose={closeOverlay} />}
     </>
   );
 }

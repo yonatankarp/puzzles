@@ -265,3 +265,31 @@ kbd {
 .card-tagline { margin: 7px 0 0; font-size: 13.5px; }
 .card-rules { margin: 5px 0 0; font-size: 12px; line-height: 1.55; }
 .card-foot { margin: 10px 0 0; font-size: 12px; font-variant-numeric: tabular-nums; }
+
+/* -------------------------------------------------------------- how to play */
+.rules-goal { margin: 14px 0 0; font-size: 14.5px; line-height: 1.5; }
+.diagram {
+  display: block; width: 168px; height: auto; margin: 16px auto 4px;
+  border-radius: 10px;
+}
+.rules-heading {
+  margin: 20px 0 8px; font-size: 11px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--dim);
+}
+.rules-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; }
+.rules-list li { font-size: 13px; line-height: 1.5; }
+.rules-controls { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.rules-controls > div { display: flex; gap: 10px; align-items: baseline; }
+.rules-controls dt { flex: none; min-width: 62px; }
+.rules-controls dd { margin: 0; font-size: 13px; line-height: 1.5; }
+.rules-tips { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; }
+.rules-tips li { font-size: 12.5px; line-height: 1.55; }
+
+/* The header gained a button per feature; below this it no longer fits, and
+   the wordmark is the least useful thing on it. */
+@media (max-width: 380px) {
+  header { gap: 6px; }
+  .brand-title { display: none; }
+  .icon-btn { width: 31px; height: 31px; }
+  .clock { font-size: 22px; }
+}

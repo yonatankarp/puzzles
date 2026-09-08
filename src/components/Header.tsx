@@ -9,9 +9,11 @@ interface Props {
   soundMode: SoundMode;
   onCycleSound: () => void;
   onCycleTheme: () => void;
+  /** Only inside a game: the index has the rules on its cards already. */
+  onHelp?: () => void;
 }
 
-export default function Header({ title, onBack, clockRef, soundMode, onCycleSound, onCycleTheme }: Props) {
+export default function Header({ title, onBack, clockRef, soundMode, onCycleSound, onCycleTheme, onHelp }: Props) {
   const audible = soundMode !== 'off';
   return (
     <header>
@@ -33,9 +35,19 @@ export default function Header({ title, onBack, clockRef, soundMode, onCycleSoun
             <rect x="17" y="17" width="7" height="7" rx="3.5"></rect>
           </g>
         </svg>
-        {title ?? 'Puzzles'}
+        <span className="brand-title">{title ?? 'Puzzles'}</span>
       </div>
       <div className="spacer" />
+      {onHelp && (
+        <button className="icon-btn" id="helpBtn" onClick={onHelp} title="How to play" aria-label="How to play">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M9.2 9.3a2.9 2.9 0 1 1 3.5 3.5v1.3" />
+            <path d="M12 17.2v.1" />
+          </svg>
+        </button>
+      )}
       <button
         className="icon-btn" id="soundBtn" onClick={onCycleSound}
         aria-pressed={audible} title={SOUND_LABEL[soundMode]} aria-label="Sound"

@@ -81,6 +81,15 @@ const ready = async (page, { reveal = true } = {}) => {
     await sleep(50);
   }
   if (!arrived) throw new Error('no puzzle after 5s');
+  /*
+   * A game shows its rules unasked the first time it is opened, and every test
+   * runs in a fresh profile — so without this the sheet would sit over the
+   * board in every suite. Dismissing it also marks it seen.
+   */
+  if (await page.eval("return !!document.getElementById('rules')")) {
+    await page.eval("document.getElementById('rulesClose').click(); return 1");
+    await sleep(200);
+  }
   if (reveal) {
     await page.eval('window.__zip.reveal(); return 1');
     // The reveal publishes on the next animation frame, and until React has
@@ -1140,6 +1149,9 @@ section('the changelog is deep-linkable');
   await click(page, 'changelogClose');
   await settle(page);
   ok(await page.eval("return !document.getElementById('changelog')"), 'the close button did nothing');
+  // Nothing was underneath a cold changelog link, so closing belongs at the index.
+  ok(await page.eval("return location.hash === '' && !!document.getElementById('index')"),
+     `closing a cold changelog link landed on ${await page.eval('return location.hash')}`);
   // Closing a deep link must not walk off the site: there is no entry of ours
   // behind it to go back to.
   ok(await page.eval("return location.pathname.endsWith('/index.html')"),
@@ -1312,11 +1324,29 @@ section('the collection index');
   // Clicking through and coming back.
   await page.eval("document.getElementById('card-queens').click(); return 1");
   await sleep(700);
+  // A first-time visitor is met by the rules, and the address says which game's.
+  ok(await page.eval("return !!document.getElementById('rules')"),
+     'a first visit to a game did not offer its rules');
+  ok(await page.eval("return location.hash === '#/queens/help'"),
+     `help is at ${await page.eval('return location.hash')}, which no one can share`);
+  await page.eval("document.getElementById('rulesClose').click(); return 1");
+  await sleep(400);
   ok(await page.eval("return location.hash === '#/queens'"), 'opening a game did not route');
   ok(await page.eval("return !!document.getElementById('board')"), 'the game did not render');
   await page.eval("document.getElementById('backBtn').click(); return 1");
   await sleep(500);
   ok(await page.eval("return !!document.getElementById('index')"), 'going back did not reach the index');
+
+  // Someone handed a help link has no history of ours behind them; closing has
+  // to leave them on the game, not eject them to the index.
+  await page.goto(`${INDEX}#/zip/help`);
+  await sleep(900);
+  ok(await page.eval("return !!document.getElementById('rules')"), 'a cold help link showed no rules');
+  await page.eval("document.getElementById('rulesClose').click(); return 1");
+  await sleep(400);
+  ok(await page.eval("return location.hash === '#/zip'"),
+     `closing a cold help link landed on ${await page.eval('return location.hash')}`);
+  ok(await page.eval("return !!document.getElementById('board')"), 'closing a cold help link lost the board');
 
   // A deep link straight into a game works without passing through the index.
   await page.goto(`${INDEX}#/zip`);
@@ -1382,6 +1412,66 @@ section('Queens plays');
   ok(/\d:\d\d\.\d/.test(await page.eval("return document.getElementById('bannerText').textContent")),
      'no time reported when Queens was solved');
   ok(page.consoleErrors.length === 0, `Queens errors: ${page.consoleErrors.join(' | ')}`);
+  await page.close();
+}
+
+// --- how to play -------------------------------------------------------------
+section('how to play');
+for (const [game, expect] of [['zip', 'Zip'], ['queens', 'Queens']]) {
+  const page = await launch();
+  await page.setup({ scheme: 'dark', width: 520, height: 900 });
+  await page.goto(`${INDEX}#/${game}`);
+  await sleep(1400);
+
+  // Shown unasked the first time, because that is when they are wanted.
+  ok(await page.eval("return !!document.getElementById('rules')"),
+     `${game}: the rules did not appear on a first visit`);
+  const sheet = await page.eval(`
+    const panel = document.querySelector('#rules .sheet-panel');
+    return {
+      title: document.getElementById('rulesTitle')?.textContent,
+      role: panel?.getAttribute('role'),
+      modal: panel?.getAttribute('aria-modal'),
+      focused: document.activeElement === panel,
+      goal: document.getElementById('rulesGoal')?.textContent ?? '',
+      rules: document.querySelectorAll('#rulesList li').length,
+      controls: document.querySelectorAll('#rulesControls div').length,
+      tips: document.querySelectorAll('#rulesTips li').length,
+      diagram: !!document.querySelector('#rules .diagram'),
+      diagramLabelled: (document.querySelector('#rules .diagram')?.getAttribute('aria-label') ?? '').length
+    };`);
+  ok(sheet.title === `How to play ${expect}`, `${game}: titled "${sheet.title}"`);
+  ok(sheet.role === 'dialog' && sheet.modal === 'true', `${game}: the sheet is not an accessible dialog`);
+  ok(sheet.focused, `${game}: focus did not move into the rules`);
+  ok(sheet.goal.length > 30, `${game}: the goal is "${sheet.goal}"`);
+  ok(sheet.rules >= 3, `${game}: only ${sheet.rules} rules listed`);
+  ok(sheet.controls >= 3, `${game}: only ${sheet.controls} controls listed`);
+  ok(sheet.tips >= 2, `${game}: only ${sheet.tips} tips listed`);
+  ok(sheet.diagram, `${game}: no worked example`);
+  // The picture carries meaning, so it needs a description rather than being
+  // hidden or left unlabelled.
+  ok(sheet.diagramLabelled > 40, `${game}: the diagram has no useful alt text`);
+
+  // Escape closes it and leaves you on the game.
+  await page.send('Input.dispatchKeyEvent',
+    { type: 'rawKeyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  await sleep(250);
+  await settle(page);
+  ok(await page.eval("return !document.getElementById('rules')"), `${game}: Escape did not close the rules`);
+  ok(await page.eval("return !!document.getElementById('board')"), `${game}: the board is gone`);
+  ok(await page.eval(`return location.hash === '#/${game}'`),
+     `${game}: closing the rules left the fragment at "${await page.eval('return location.hash')}"`);
+
+  // Not shown again, but still reachable.
+  await page.reload();
+  await sleep(1400);
+  ok(await page.eval("return !document.getElementById('rules')"),
+     `${game}: the rules reappeared on a return visit`);
+  await page.eval("document.getElementById('helpBtn').click(); return 1");
+  await settle(page);
+  ok(await page.eval("return !!document.getElementById('rules')"),
+     `${game}: the help button did not reopen the rules`);
+  ok(page.consoleErrors.length === 0, `${game}: ${page.consoleErrors.join(' | ')}`);
   await page.close();
 }
 
