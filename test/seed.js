@@ -68,6 +68,20 @@ async function codeOn(page) {
   return null;
 }
 
+/*
+ * Wait for the chip to show a particular code. Waiting for it merely to EXIST
+ * is not enough: while a new board generates, the chip still names the board
+ * that is on screen -- correctly -- so a read taken too early gets the previous
+ * code and the comparison fails on a slow machine and passes on a fast one.
+ */
+async function codeBecomes(page, want) {
+  for (let i = 0; i < 200; i++) {
+    if (await codeOn(page) === want) return true;
+    await sleep(50);
+  }
+  return false;
+}
+
 /** Wait until a specific tier's board has actually landed. Expert is slow. */
 async function settledOn(page, game, tier) {
   for (let i = 0; i < 200; i++) {
@@ -288,7 +302,7 @@ section('a code you were given can be typed in');
   await type(code.toLowerCase());
   ok(await settledOn(page, 'zip', 'hard'), 'a typed code did not load its board');
   ok(await boardOf(page, 'zip') === board, 'a typed code loaded a different board');
-  ok(await codeOn(page) === code, 'a typed code landed somewhere that shows a different code');
+  ok(await codeBecomes(page, code), `a typed code landed on ${await codeOn(page)}, not ${code}`);
 
   // One wrong character must be caught by the check character.
   const typo = code.slice(0, -1) + (code.slice(-1) === 'A' ? 'B' : 'A');
@@ -303,7 +317,7 @@ section('a code you were given can be typed in');
   await sleep(200);
   await type(`https://example.com/puzzles/#/s/${code}`);
   await sleep(600);
-  ok(await codeOn(page) === code, 'a pasted link was not understood');
+  ok(await codeBecomes(page, code), `a pasted link landed on ${await codeOn(page)}, not ${code}`);
   ok(page.consoleErrors.length === 0, `code entry: ${page.consoleErrors.join(' | ')}`);
   await page.close();
 }
