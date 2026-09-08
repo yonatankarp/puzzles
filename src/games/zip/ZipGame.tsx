@@ -9,6 +9,7 @@ import Status from '../../components/Status.tsx';
 import DailyBar from '../../components/DailyBar.tsx';
 import History from '../../components/History.tsx';
 import type { Snapshot } from '../../shell/types.ts';
+import type { SeedRoute } from '../../shell/route.ts';
 import type { SoundMode } from '../../shell/audio.ts';
 
 export interface SharedChrome {
@@ -23,6 +24,8 @@ export interface SharedChrome {
 
 interface Props {
   shared: SharedChrome;
+  /** A board someone sent you, from a #/<game>/s/<tier>/<seed> link. */
+  seed: SeedRoute | null;
   onBack: () => void;
 }
 
@@ -30,7 +33,7 @@ declare global {
   interface Window { __zip?: ReturnType<GameCore['testHooks']> }
 }
 
-export default function ZipGame({ shared, onBack }: Props) {
+export default function ZipGame({ shared, seed, onBack }: Props) {
   const coreRef = useRef<GameCore | null>(null);
   coreRef.current ??= new GameCore();
   const core = coreRef.current;
@@ -67,6 +70,19 @@ export default function ZipGame({ shared, onBack }: Props) {
   // Sound is a collection-wide preference; the game only plays it.
   useEffect(() => { core.audio.mode = shared.soundMode; }, [core, shared.soundMode]);
 
+  /*
+   * A board someone sent. Practice, because a seed link names a tier and the
+   * daily is the same board for everyone already. Keyed on the numbers rather
+   * than the object so re-rendering does not reload the board underneath you.
+   */
+  useEffect(() => {
+    if (!seed) return;
+    core.setMode('practice');
+    core.loadTier(seed.tier, seed.seed);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [core, seed?.tier, seed?.seed]);
+
+
   return (
     <>
       <svg className="fx" ref={fxRef} aria-hidden="true" />
@@ -97,7 +113,7 @@ export default function ZipGame({ shared, onBack }: Props) {
           onHint={() => core.hint()}
           onReveal={() => core.reveal()}
         />
-        <Status snap={snap} onToggleAutoNext={() => core.toggleAutoNext()} />
+        <Status snap={snap} onToggleAutoNext={() => core.toggleAutoNext()} onShareSeed={() => core.shareSeed()} />
         {snap.mode === 'daily' && <History snap={snap} />}
         <div className="footer">
           <button className="version" id="versionBtn" onClick={shared.onOpenChangelog}>

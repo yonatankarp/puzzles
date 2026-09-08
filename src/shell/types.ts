@@ -23,6 +23,11 @@ export interface DailyResult {
 
 export interface Snapshot {
   gameId: string;
+  /** The number the board on screen was generated from, and its short form. */
+  seed: number;
+  seedCode: string;
+  /** Which generator entry the seed was used with: a tier name, or 'daily'. */
+  seedTier: string;
   ready: boolean;
   busy: boolean;
   mode: Mode;

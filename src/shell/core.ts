@@ -20,6 +20,8 @@ import {
 } from './daily.ts';
 import { read as readPref, write as writePref } from './prefs.ts';
 import type { Banner, Mode, Phase, ShareOutcome, Snapshot } from './types.ts';
+import { encodeSeed, randomSeed } from './seed.ts';
+import { gameHref, seedHref } from './route.ts';
 
 /*
  * Merge two hook objects without flattening their getters.
@@ -71,7 +73,7 @@ export abstract class ShellCore<P> {
   protected abstract tiers(): TierInfo[];
   protected abstract tierLabel(id: string): string;
   protected abstract requestDaily(seed: number): Promise<P | null>;
-  protected abstract requestTier(tier: string): Promise<P | null>;
+  protected abstract requestTier(tier: string, seed: number): Promise<P | null>;
   protected abstract fingerprint(puzzle: P): string;
   /** Wipe whatever the player had done; called only when a board is new. */
   protected abstract resetState(puzzle: P): void;
@@ -133,6 +135,13 @@ export abstract class ShellCore<P> {
   private lastCheer = -1;
 
   private loadSeq = 0;
+  /*
+   * The seed the board on screen was generated from. The shell picks it rather
+   * than letting the generator invent one privately, because a seed nobody can
+   * read back is a seed nobody can share.
+   */
+  protected seed = 0;
+  protected seedTier = '';
   private loadingDay: number | null = null;
   private savedAt = 0;
   private frame = 0;
@@ -235,6 +244,9 @@ export abstract class ShellCore<P> {
     const p = this.progress();
     return {
       gameId: this.gameId,
+      seed: this.seed,
+      seedCode: encodeSeed(this.seed),
+      seedTier: this.seedTier,
       ready: !!this.puzzle,
       busy: this.busy,
       mode: this.mode,
@@ -454,19 +466,64 @@ export abstract class ShellCore<P> {
   }
 
   newPuzzle(): void {
+    this.loadTier(this.difficulty, randomSeed());
+  }
+
+  /**
+   * Play one exact board. The tier is as load-bearing as the number: the
+   * generator is entered per tier, so the same seed is a different puzzle at
+   * every difficulty.
+   */
+  loadTier(tier: string, seed: number): void {
     clearTimeout(this.advanceTimer);
     if (this.mode === 'daily') { this.loadDaily(); return; }
+    /*
+     * An unknown tier would not fail -- the generator falls back to medium --
+     * it would quietly build a medium board while the screen said whatever the
+     * link claimed. Someone would then be racing a board they were not shown.
+     */
+    if (!this.tiers().some(t => t.id === tier)) {
+      this.busy = false;
+      this.setBanner({ text: `There is no ${tier} board in this game`, kind: 'bad' });
+      this.publish();
+      return;
+    }
+    this.difficulty = tier;
     this.busy = true;
     this.setBanner({ text: 'Generating…', kind: 'wait' });
     this.publish();
-    const seq = this.loadSeq;
-    void this.requestTier(this.difficulty).then(puzzle => {
+    /*
+     * Claim the sequence when the board is ASKED for. It used to be claimed
+     * only when one landed, which meant that with two generations in flight the
+     * first to finish cancelled the other -- and since an easier tier builds
+     * faster, tapping Medium then Expert left you on Medium, holding a tier you
+     * had not chosen. Newest request wins; a direct load() still cancels both.
+     */
+    const seq = ++this.loadSeq;
+    void this.requestTier(tier, seed).then(puzzle => {
       // Generation is deferred, so a result can arrive after something else has
       // been loaded; a superseded one drops its result rather than landing.
       if (!this.alive || seq !== this.loadSeq) return;
       this.busy = false;
-      this.setBanner(null);
-      if (puzzle) this.load(puzzle);
+      if (puzzle) {
+        /*
+         * Only now. Naming the seed when it is asked for rather than when the
+         * board arrives means that for as long as generation takes -- three
+         * seconds for an expert board -- the chip names one board while another
+         * is on screen, and the link hands someone a puzzle you never played.
+         */
+        this.seed = seed;
+        this.seedTier = tier;
+        this.setBanner(null);
+        this.load(puzzle);
+        return;
+      }
+      /*
+       * A seed that cannot be built is the one case where saying nothing is
+       * indefensible: someone followed a link to a specific board and would be
+       * left looking at whatever happened to be on screen.
+       */
+      this.setBanner({ text: `Seed ${encodeSeed(seed)} did not make a board`, kind: 'bad' });
     });
   }
 
@@ -474,13 +531,16 @@ export abstract class ShellCore<P> {
     const day = dayNumber();
     if (this.loadingDay === day) return;
     this.loadingDay = day;
-    const seq = this.loadSeq;
-    void this.requestDaily(seedForDay(this.gameId, day)).then(puzzle => {
+    const seq = ++this.loadSeq;
+    const seed = seedForDay(this.gameId, day);
+    void this.requestDaily(seed).then(puzzle => {
       this.loadingDay = null;
       if (!this.alive || seq !== this.loadSeq || !puzzle) return;
       // Only now: moving the day first would name a new day while the previous
       // board was still on screen.
       this.day = day;
+      this.seed = seed;
+      this.seedTier = 'daily';
       this.load(puzzle);
       this.restoreProgress();
     });
@@ -641,6 +701,44 @@ export abstract class ShellCore<P> {
         return 'shared';
       } catch (err) {
         // Dismissing is a decision, not a failure; do not then quietly copy.
+        if (err instanceof Error && err.name === 'AbortError') return 'cancelled';
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      return 'copied';
+    } catch {
+      return 'failed';
+    }
+  }
+
+  /**
+   * The address that reproduces exactly the board on screen. In practice that
+   * is the seed and its tier; the daily needs neither, because today's board is
+   * the same one for everybody.
+   */
+  seedLink(): string {
+    const base = location.origin + location.pathname;
+    return base + (this.mode === 'daily'
+      ? gameHref(this.gameId)
+      : seedHref(this.gameId, this.seedTier || this.difficulty, this.seed));
+  }
+
+  /*
+   * Same route out as a result: the native sheet if there is one, the clipboard
+   * otherwise, and nothing awaited before navigator.share so it still counts as
+   * coming from the tap.
+   */
+  async shareSeed(): Promise<ShareOutcome> {
+    const where = this.mode === 'daily'
+      ? `Daily #${this.day}`
+      : this.tierLabel(this.seedTier || this.difficulty);
+    const text = `${this.displayName} · ${where} · seed ${encodeSeed(this.seed)}\n${this.seedLink()}`;
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title: `${this.displayName} · seed ${encodeSeed(this.seed)}`, text });
+        return 'shared';
+      } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return 'cancelled';
       }
     }

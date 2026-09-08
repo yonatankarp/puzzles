@@ -1,12 +1,14 @@
 import { formatDuration as formatTime } from '../shell/daily.ts';
 import type { Snapshot } from '../shell/types.ts';
+import Seed from './Seed.tsx';
 
 interface Props {
   snap: Snapshot;
   onToggleAutoNext: () => void;
+  onShareSeed: () => Promise<'shared' | 'copied' | 'cancelled' | 'failed'>;
 }
 
-export default function Status({ snap, onToggleAutoNext }: Props) {
+export default function Status({ snap, onToggleAutoNext, onShareSeed }: Props) {
   const { session } = snap;
   const summary = session.solved
     ? `${session.solved} solved · avg ${formatTime(session.total / session.solved)}` +
@@ -23,14 +25,15 @@ export default function Status({ snap, onToggleAutoNext }: Props) {
         <div id="tierStats">{snap.difficultyLabel} · {snap.sizeLabel}</div>
         <div>best <b id="best">{snap.best === null ? '—' : formatTime(snap.best)}</b></div>
       </div>
-      {snap.mode === 'practice' && (
-        <div className="status">
+      <div className="status">
+        <Seed snap={snap} onShare={onShareSeed} />
+        {snap.mode === 'practice' && (
           <button className="chip" id="autoBtn" aria-pressed={snap.autoNext} onClick={onToggleAutoNext}>
             <span className="dot" />Auto-next
           </button>
-          <div id="session">{summary}</div>
-        </div>
-      )}
+        )}
+        {snap.mode === 'practice' && <div id="session">{summary}</div>}
+      </div>
     </>
   );
 }

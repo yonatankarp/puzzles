@@ -104,8 +104,8 @@ export default function App() {
 
   return (
     <>
-      {meta?.id === 'zip' && <ZipGame key="zip" shared={shared} onBack={() => go(indexHref)} />}
-      {meta?.id === 'queens' && <QueensGame key="queens" shared={shared} onBack={() => go(indexHref)} />}
+      {meta?.id === 'zip' && <ZipGame key="zip" shared={shared} seed={route.seed} onBack={() => go(indexHref)} />}
+      {meta?.id === 'queens' && <QueensGame key="queens" shared={shared} seed={route.seed} onBack={() => go(indexHref)} />}
       {!meta && (
         <div className="wrap">
           <Header soundMode={sound} onCycleSound={cycleSound} onCycleTheme={cycleTheme} />

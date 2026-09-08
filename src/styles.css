@@ -516,3 +516,11 @@ kbd {
   .diagram { width: 132px; margin: 10px auto 2px; }
   .rules-heading { margin-top: 14px; }
 }
+
+/* The seed is a number people read out and type, so it is spaced and monospaced
+   rather than set in the body face where 0 and O are the same shape. */
+.chip.seed { font-size: 11.5px; }
+.chip.seed b {
+  font: 600 11.5px/1 ui-monospace, "SF Mono", Menlo, monospace;
+  letter-spacing: .04em; color: var(--ink); margin-left: 3px;
+}

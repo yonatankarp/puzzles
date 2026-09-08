@@ -45,7 +45,7 @@ export class GameCore extends ShellCore<Puzzle> {
     return DIFFICULTIES[id as DifficultyName]?.label ?? id;
   }
   protected requestDaily(seed: number) { return this.source.requestDaily(seed); }
-  protected requestTier(tier: string) { return this.source.requestTier(tier as DifficultyName); }
+  protected requestTier(tier: string, seed: number) { return this.source.requestTier(tier as DifficultyName, seed); }
   protected fingerprint(puzzle: Puzzle) { return fingerprint(puzzle); }
 
   protected resetState(puzzle: Puzzle): void {

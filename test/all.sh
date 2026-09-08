@@ -17,3 +17,4 @@ node test/render.js
 node test/contrast.js
 node test/queens-feel.js
 node test/gate.js
+node test/seed.js

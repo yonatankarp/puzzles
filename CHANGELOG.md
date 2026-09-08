@@ -2,6 +2,19 @@
 
 Generated from `src/changelog.ts` by `tools/make-changelog.js` — edit that, not this.
 
+## 2.5.0 — 2026-09-08
+
+Every board now shows the number it was made from, so you can race someone on it.
+
+### Added
+
+- Each board shows the seed it was generated from, on the daily and in practice alike. Two people holding the same seed are playing the same board, which is all it takes to race each other honestly: compare times knowing the puzzle was identical.
+- Tapping the seed hands over a link that rebuilds that exact board for whoever you send it to — their own difficulty setting does not override it. The link carries the difficulty as well as the number, because the same number is a different puzzle at every difficulty; a link with only the number would have given you both different boards while telling you it was the same one.
+
+### Fixed
+
+- Tapping one difficulty and then another could leave you on the first. Two boards would be generating at once and the quicker one won, so asking for Medium and then Expert gave you Medium — with the label agreeing, so the only clue was that the puzzle was easier than the one you asked for.
+
 ## 2.4.0 — 2026-09-08
 
 Queens tells you when a queen is wrong; the daily stops being one tap from lost.
