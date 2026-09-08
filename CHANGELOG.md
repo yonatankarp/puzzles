@@ -2,6 +2,21 @@
 
 Generated from `src/changelog.ts` by `tools/make-changelog.js` — edit that, not this.
 
+## 2.2.0 — 2026-09-08
+
+Queens catches up with Zip, and the app stops calling itself Zip.
+
+### Changed
+
+- Queens now shows how far along you are the way Zip does: the progress bar takes the same colour ramp, and a colour region steps back once it holds its one queen. It only ever reports what you have already done — what to do next is still the hint button’s job.
+- Queens gained the quiet click that Zip has had. Crossing a square off used to be silent, which left nothing for the sparse sound setting to strip out — so sparse and full sounded identical. Now they differ.
+
+### Fixed
+
+- Undo in Queens took back the top-left queen rather than the one you just placed, and hinted queens could not be taken back at all.
+- The confetti burst from wherever the first queen happened to sit instead of from the move that finished the board.
+- Installing the collection installed something called Zip, with Zip’s icon: the manifest, icons, offline cache and link-preview card had all been carried over from the single-game site and never renamed.
+
 ## 2.1.0 — 2026-09-08
 
 Every game now explains itself.

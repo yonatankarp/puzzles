@@ -1400,6 +1400,63 @@ section('Queens plays');
     return z.state.conflicts.length;`);
   ok(clash === 2, `two clashing queens flagged ${clash} conflicts`);
 
+  // Undo has to mean "the move I just made". Taking the lowest-numbered queen
+  // instead looks identical on a board where you happened to play in order.
+  const undone = await page.eval(`
+    const z = window.__queens, n = z.state.puzzle.n;
+    z.restart();
+    const late = 0, early = 2 * n + 3;   // play the high cell first, then cell 0
+    z.cycle(early); z.cycle(early);
+    z.cycle(late); z.cycle(late);
+    z.undo();
+    return { kept: z.state.marks[early], removed: z.state.marks[late] };`);
+  ok(undone.kept === 'queen' && undone.removed === 'empty',
+     `undo removed the wrong queen: kept ${undone.kept}, removed ${undone.removed}`);
+
+  const hintUndo = await page.eval(`
+    const z = window.__queens;
+    z.restart();
+    z.hint();
+    const after = z.state.marks.filter(m => m === 'queen').length;
+    z.undo();
+    return { after, then: z.state.marks.filter(m => m === 'queen').length };`);
+  ok(hintUndo.after === 1 && hintUndo.then === 0,
+     `a hinted queen could not be taken back (${hintUndo.after} then ${hintUndo.then})`);
+
+  // A region that holds its one queen steps back; the rest stay as they were.
+  const dimming = await page.eval(`
+    const z = window.__queens, p = z.state.puzzle;
+    z.restart();
+    const cell = p.solution[0] + 0;                 // row 0's queen
+    z.cycle(cell); z.cycle(cell);
+    const fills = document.querySelector('#board > g').children;   // #board is the svg
+    const mine = p.regions[cell];
+    const other = [...p.regions].findIndex(r => r !== mine);
+    return {
+      count: fills.length,
+      settled: fills[cell].getAttribute('opacity'),
+      untouched: fills[other].getAttribute('opacity')
+    };`);
+  ok(dimming.count === (await page.eval('return window.__queens.state.puzzle.n ** 2')),
+     `expected one fill per cell, found ${dimming.count}`);
+  ok(dimming.settled === '0.45' && dimming.untouched === '1',
+     `settled region is ${dimming.settled}, untouched is ${dimming.untouched}`);
+
+  // Queens drives the same progress ramp as Zip rather than leaving it unset.
+  const colour = await page.eval("return getComputedStyle(document.getElementById('progressFill')).backgroundColor");
+  ok(/^rgb\(/.test(colour) && colour !== 'rgba(0, 0, 0, 0)',
+     `the Queens progress bar has no ramp colour (${colour})`);
+
+  // The celebration fires from the move that finished the board.
+  const burst = await page.eval(`
+    const z = window.__queens, p = z.state.puzzle;
+    z.restart();
+    const cells = p.solution.map((col, row) => row * p.n + col).reverse();
+    for (const c of cells) z.place(c);
+    return { last: cells[cells.length - 1], order: z.state.order[z.state.order.length - 1] };`);
+  ok(burst.last === burst.order,
+     `the celebration would fire from cell ${burst.order}, not the finishing ${burst.last}`);
+
   // The solution solves it, and solving is detected.
   const solved = await page.eval(`
     const z = window.__queens, p = z.state.puzzle;
@@ -1471,6 +1528,30 @@ for (const [game, expect] of [['zip', 'Zip'], ['queens', 'Queens']]) {
   await settle(page);
   ok(await page.eval("return !!document.getElementById('rules')"),
      `${game}: the help button did not reopen the rules`);
+  // The header's ? is one of three identical icons and went unfound, so the
+  // gate carries a named way in -- and reading the rules must not start the clock.
+  await page.eval("document.getElementById('rulesClose').click(); return 1");
+  await sleep(400);
+  ok(await page.eval("return !!document.getElementById('gateHelpBtn')"),
+     `${game}: no way into the rules from the ready gate`);
+  ok(await page.eval("return document.getElementById('gateHelpBtn').textContent.trim()") === 'How to play',
+     `${game}: the gate link does not say what it does`);
+  const gap = await page.eval(`
+    const s = document.getElementById('startBtn').getBoundingClientRect();
+    const h = document.getElementById('gateHelpBtn').getBoundingClientRect();
+    return Math.round(h.top - s.bottom);`);
+  ok(gap >= 0 && gap < 40, `${game}: the gate link sits ${gap}px from Start`);
+  await page.eval("document.getElementById('gateHelpBtn').click(); return 1");
+  await sleep(500);
+  ok(await page.eval("return !!document.getElementById('rules')"),
+     `${game}: the gate link did not open the rules`);
+  await page.eval("document.getElementById('rulesClose').click(); return 1");
+  await sleep(400);
+  ok(await page.eval("return !!document.getElementById('startBtn')"),
+     `${game}: closing the rules did not return to the gate`);
+  ok(await page.eval("return window.__" + game + ".state.elapsed") === 0,
+     `${game}: reading the rules started the clock`);
+
   ok(page.consoleErrors.length === 0, `${game}: ${page.consoleErrors.join(' | ')}`);
   await page.close();
 }
@@ -1519,6 +1600,11 @@ section('installable and offline');
 
   const manifest = await (await fetch(`${site.origin}/manifest.webmanifest`)).json();
   ok(manifest.display === 'standalone', `display is "${manifest.display}"`);
+  // The collection shipped for a while installing itself as "Zip", with Zip's
+  // icon, because the manifest was inherited wholesale from the single-game site.
+  ok(!/zip/i.test(manifest.name) && !/zip/i.test(manifest.short_name),
+     `the installed app is called "${manifest.name}" / "${manifest.short_name}"`);
+  ok(manifest.short_name === 'Puzzles', `short_name is "${manifest.short_name}"`);
   ok(manifest.start_url === './' && manifest.scope === './',
      'manifest start_url/scope are not relative, so a subpath deploy breaks');
   ok(!!manifest.theme_color && !!manifest.background_color, 'manifest has no colours');

@@ -119,7 +119,9 @@ svg.board.won { animation: boardPop .45s ease-out; }
 /* Nothing is drawn inside a covered board, so there is nothing to blur — it is
    dimmed to read as "not yet", and inert so a stray drag does nothing. */
 svg.board.covered { opacity: .5; pointer-events: none; }
-.gate { position: absolute; inset: 0; display: grid; place-items: center; }
+/* place-content as well as place-items: with two children the tracks would
+   otherwise stretch to fill the board and leave them far apart. */
+.gate { position: absolute; inset: 0; display: grid; place-items: center; place-content: center; }
 .gate .start {
   display: flex; flex-direction: column; align-items: center; gap: 5px;
   padding: 15px 26px; font-size: 16px; font-weight: 600; border-radius: 14px;
@@ -293,3 +295,13 @@ kbd {
   .icon-btn { width: 31px; height: 31px; }
   .clock { font-size: 22px; }
 }
+
+/* A button that reads as a link: used where a full button would compete with
+   the primary action next to it. */
+.linkish {
+  background: none; border: 0; padding: 8px 10px; margin-top: 14px;
+  color: var(--dim); font: inherit; font-size: 15px; text-decoration: underline;
+  text-underline-offset: 3px; cursor: pointer; border-radius: 8px;
+}
+.linkish:hover { color: var(--ink); }
+.linkish:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

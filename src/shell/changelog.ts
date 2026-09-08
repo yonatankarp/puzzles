@@ -25,6 +25,18 @@ export interface Release {
 /** Newest first. */
 export const RELEASES: Release[] = [
   {
+    version: '2.2.0',
+    date: '2026-09-08',
+    summary: 'Queens catches up with Zip, and the app stops calling itself Zip.',
+    changes: [
+      { kind: 'changed', text: 'Queens now shows how far along you are the way Zip does: the progress bar takes the same colour ramp, and a colour region steps back once it holds its one queen. It only ever reports what you have already done — what to do next is still the hint button\u2019s job.' },
+      { kind: 'changed', text: 'Queens gained the quiet click that Zip has had. Crossing a square off used to be silent, which left nothing for the sparse sound setting to strip out — so sparse and full sounded identical. Now they differ.' },
+      { kind: 'fixed', text: 'Undo in Queens took back the top-left queen rather than the one you just placed, and hinted queens could not be taken back at all.' },
+      { kind: 'fixed', text: 'The confetti burst from wherever the first queen happened to sit instead of from the move that finished the board.' },
+      { kind: 'fixed', text: 'Installing the collection installed something called Zip, with Zip\u2019s icon: the manifest, icons, offline cache and link-preview card had all been carried over from the single-game site and never renamed.' }
+    ]
+  },
+  {
     version: '2.1.0',
     date: '2026-09-08',
     summary: 'Every game now explains itself.',

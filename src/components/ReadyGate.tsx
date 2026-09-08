@@ -3,6 +3,7 @@ import type { Snapshot } from '../shell/types.ts';
 interface Props {
   snap: Snapshot;
   onStart: () => void;
+  onHelp: () => void;
 }
 
 /*
@@ -14,7 +15,7 @@ interface Props {
  * still legible — you can see what size you are about to get, without being
  * able to read it.
  */
-export default function ReadyGate({ snap, onStart }: Props) {
+export default function ReadyGate({ snap, onStart, onHelp }: Props) {
   if (snap.phase === 'playing' || !snap.ready) return null;
 
   const counting = snap.phase === 'counting';
@@ -27,13 +28,18 @@ export default function ReadyGate({ snap, onStart }: Props) {
           </div>
         )
         : (
-          <button className="btn primary start" id="startBtn" onClick={onStart}>
-            Start
-            <small>
-              {snap.mode === 'daily' ? `Daily #${snap.day}` : snap.difficultyLabel}
-              {' · '}{snap.sizeLabel} · the clock starts on reveal
-            </small>
-          </button>
+          <>
+            <button className="btn primary start" id="startBtn" onClick={onStart}>
+              Start
+              <small>
+                {snap.mode === 'daily' ? `Daily #${snap.day}` : snap.difficultyLabel}
+                {' · '}{snap.sizeLabel} · the clock starts on reveal
+              </small>
+            </button>
+            {/* The ? in the header is one of three identical icons and nobody
+                finds it. This is the moment the rules are actually wanted. */}
+            <button className="linkish" id="gateHelpBtn" onClick={onHelp}>How to play</button>
+          </>
         )}
     </div>
   );

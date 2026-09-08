@@ -8,6 +8,7 @@ interface Props {
   announcerRef: Ref<HTMLDivElement>;
   snap: Snapshot;
   onStart: () => void;
+  onHelp: () => void;
 }
 
 /*
@@ -20,7 +21,7 @@ interface Props {
  * the focusable application region wrapping it, whose label carries the current
  * state, plus a live region that announces each move as it happens.
  */
-export default function Board({ ref, regionRef, announcerRef, snap, onStart }: Props) {
+export default function Board({ ref, regionRef, announcerRef, snap, onStart, onHelp }: Props) {
   const progress = snap.total ? (snap.done / snap.total) * 100 : 0;
   const label =
     `${snap.sizeLabel} board. ` +
@@ -44,7 +45,7 @@ export default function Board({ ref, regionRef, announcerRef, snap, onStart }: P
             id="board" ref={ref} aria-hidden="true"
           />
         </div>
-        <ReadyGate snap={snap} onStart={onStart} />
+        <ReadyGate snap={snap} onStart={onStart} onHelp={onHelp} />
         <div className={`banner${snap.banner ? ' show' : ''}`} id="banner">
           <b id="bannerText" style={{ color: bannerColour(snap) }}>
             {snap.banner?.text}

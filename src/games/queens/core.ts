@@ -12,6 +12,7 @@ import {
 import { QueensBoard, type Mark } from './board.ts';
 import { fingerprint } from './daily.ts';
 import { QueensSource } from './source.ts';
+import { rampColour } from '../../shell/ramp.ts';
 import { ShellCore, mergeHooks, type GameProgress, type TierInfo } from '../../shell/core.ts';
 
 /** Marks are stored as cell * 3 + code, so a run is a flat list of numbers. */
@@ -26,6 +27,9 @@ export class QueensCore extends ShellCore<QueensPuzzle> {
   private view: QueensBoard | null = null;
   private marks: Mark[] = [];
   private conflicts = new Set<number>();
+  /* The order queens were placed in. Cell index alone cannot answer
+   * "which was last", and both undo and the celebration need to know. */
+  private order: number[] = [];
 
   constructor() { super('queens', 'medium'); }
 
@@ -63,7 +67,7 @@ export class QueensCore extends ShellCore<QueensPuzzle> {
       unit: 'queens placed',
       goal: `${Math.max(0, n - placed)} still to place.`,
       sizeLabel: `${n}×${n}`,
-      progressColour: null
+      progressColour: rampColour(placed / Math.max(1, n))
     };
   }
 
@@ -83,16 +87,20 @@ export class QueensCore extends ShellCore<QueensPuzzle> {
       const code = move % 3;
       if (!Number.isInteger(move) || cell < 0 || cell >= size || code < 1 || code > 2) return false;
     }
+    this.order = [];
     for (const move of moves) {
-      this.marks[Math.floor(move / 3)] = move % 3 === 1 ? 'blocked' : 'queen';
+      const cell = Math.floor(move / 3);
+      this.marks[cell] = move % 3 === 1 ? 'blocked' : 'queen';
+      if (move % 3 === 2) this.order.push(cell);
     }
     this.recomputeConflicts();
     return true;
   }
 
+  /* Burst from the queen that finished the board -- where the eye already is,
+   * not the topmost-leftmost one, which is nowhere in particular. */
   protected celebrationCell(): number | null {
-    const cell = this.marks.findIndex(m => m === 'queen');
-    return cell < 0 ? null : cell;
+    return this.order[this.order.length - 1] ?? null;
   }
 
   protected attachInput(boardSvg: SVGSVGElement): Array<() => void> {
@@ -120,27 +128,31 @@ export class QueensCore extends ShellCore<QueensPuzzle> {
   protected onRestart(): void {
     this.marks.fill('empty');
     this.conflicts = new Set();
+    this.order = [];
   }
 
   /** Undo takes back the most recent queen; a cross is not worth undoing. */
   protected onUndo(): void {
     if (this.phase !== 'playing' || this.solved) return;
-    for (let cell = this.marks.length - 1; cell >= 0; cell--) {
-      if (this.marks[cell] !== 'queen') continue;
-      this.marks[cell] = 'empty';
-      this.backtracks++;
-      this.recomputeConflicts();
-      this.setBanner(null);
-      this.redraw();
-      this.markDirty();
-      return;
-    }
+    const cell = this.order.pop();
+    if (cell === undefined) return;
+    this.marks[cell] = 'empty';
+    this.backtracks++;
+    this.recomputeConflicts();
+    this.setBanner(null);
+    this.redraw();
+    this.markDirty();
   }
 
   protected onReveal(): void {
     const puzzle = this.puzzle!;
     this.marks.fill('empty');
-    puzzle.solution.forEach((col, row) => { this.marks[row * puzzle.n + col] = 'queen'; });
+    this.order = [];
+    puzzle.solution.forEach((col, row) => {
+      const cell = row * puzzle.n + col;
+      this.marks[cell] = 'queen';
+      this.order.push(cell);
+    });
     this.recomputeConflicts();
   }
 
@@ -165,6 +177,7 @@ export class QueensCore extends ShellCore<QueensPuzzle> {
       const cell = row * n + solution[row]!;
       this.hintsUsed++;
       this.marks[cell] = 'queen';
+      this.order.push(cell);        // a hinted queen is still takeable back
       this.announce(`Hint: ${this.describe(cell).toLowerCase()}`);
       this.audio.blip();
     }
@@ -221,10 +234,16 @@ export class QueensCore extends ShellCore<QueensPuzzle> {
     const next: Mark = current === 'empty' ? 'blocked' : current === 'blocked' ? 'queen' : 'empty';
     if (current === 'queen') {
       this.backtracks++;                       // taking a queen back is the retraction
+      this.order = this.order.filter(c => c !== cell);
       this.announce('Queen removed');
     } else if (next === 'queen') {
-      this.audio.number(this.marks.filter(m => m === 'queen').length);
+      this.order.push(cell);
+      this.audio.number(this.order.length);
       this.announce(this.describe(cell));
+    } else {
+      // Crossing a square off is the fine-grained move, the way filling one is
+      // in Zip -- so it gets the quiet click that 'sparse' turns off, not a chime.
+      this.audio.step(this.order.length / Math.max(1, this.puzzle.n));
     }
     this.marks[cell] = next;
     this.startClock();
@@ -239,6 +258,7 @@ export class QueensCore extends ShellCore<QueensPuzzle> {
     return mergeHooks(this.baseHooks(), {
       cycle: (cell: number) => core.cycle(cell),
       place: (cell: number) => {
+        if (core.marks[cell] !== 'queen') core.order.push(cell);
         core.marks[cell] = 'queen';
         core.recomputeConflicts();
         core.redraw();
@@ -252,6 +272,8 @@ export class QueensCore extends ShellCore<QueensPuzzle> {
           get puzzle() { return core.puzzle; },
           get marks() { return core.marks; },
           get conflicts() { return [...core.conflicts]; },
+          get order() { return [...core.order]; },
+          get phase() { return core.phase; },
           get elapsed() { return core.elapsed; },
           get running() { return core.running; },
           get solved() { return core.solved; },

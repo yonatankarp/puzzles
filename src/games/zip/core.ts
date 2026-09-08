@@ -395,6 +395,7 @@ export class GameCore extends ShellCore<Puzzle> {
           get running() { return core.running; },
           get solved() { return core.solved; },
           get difficulty() { return core.difficulty; },
+          get phase() { return core.phase; },
           get mode() { return core.mode; }
         };
       }

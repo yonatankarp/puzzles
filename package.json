@@ -1,6 +1,6 @@
 {
   "name": "puzzles",
-  "version": "1.0.0",
+  "version": "2.2.0",
   "description": "Auto-generated puzzle games with guaranteed-unique solutions and measured difficulty.",
   "directories": {
     "test": "test"

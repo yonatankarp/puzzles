@@ -86,7 +86,7 @@ export default function ZipGame({ shared, onBack }: Props) {
           : <DailyBar snap={snap} onShare={() => core.share()} />}
         <Board
           ref={boardRef} regionRef={regionRef} announcerRef={announcerRef}
-          snap={snap} onStart={() => core.start()}
+          snap={snap} onStart={() => core.start()} onHelp={shared.onHelp}
         />
         <Controls
           mode={snap.mode}

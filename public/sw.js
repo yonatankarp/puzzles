@@ -6,7 +6,7 @@
  * network first so a deploy is picked up promptly, and hashed assets are
  * cache-first because their names change whenever their contents do.
  */
-const CACHE = 'zip-v2';
+const CACHE = 'puzzles-v1';
 
 self.addEventListener('install', event => {
   event.waitUntil(

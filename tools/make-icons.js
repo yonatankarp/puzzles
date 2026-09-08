@@ -19,9 +19,12 @@ const mark = (inset, radius) => `<!doctype html><meta charset="utf-8"><style>
   <rect width="32" height="32" rx="${radius}" fill="#0e1014"></rect>
   <rect x="${inset}" y="${inset}" width="${32 - inset * 2}" height="${32 - inset * 2}"
         rx="${Math.max(1, radius - inset / 2)}" fill="#f5b544"></rect>
-  <path d="M${9 + inset * 0.6} ${9 + inset * 0.6}h${14 - inset * 1.2}L${9 + inset * 0.6} ${23 - inset * 0.6}h${14 - inset * 1.2}"
-        stroke="#14161c" stroke-width="${3.4 - inset * 0.05}" fill="none"
-        stroke-linecap="round" stroke-linejoin="round"></path>
+  <g fill="#14161c" transform="translate(${inset} ${inset}) scale(${(32 - inset * 2) / 32})">
+    <rect x="8" y="8" width="7" height="7" rx="1.5"></rect>
+    <rect x="17" y="8" width="7" height="7" rx="1.5"></rect>
+    <rect x="8" y="17" width="7" height="7" rx="1.5"></rect>
+    <rect x="17" y="17" width="7" height="7" rx="3.5"></rect>
+  </g>
 </svg>`;
 
 mkdirSync('public', { recursive: true });

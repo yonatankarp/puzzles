@@ -1,7 +1,7 @@
 {
-  "name": "Zip — one path, every square, in order",
-  "short_name": "Zip",
-  "description": "A daily path puzzle, plus endless practice in four measured difficulties.",
+  "name": "Puzzles — one solution, always",
+  "short_name": "Puzzles",
+  "description": "Auto-generated puzzle games. Every board has exactly one solution, and its difficulty is measured rather than guessed.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

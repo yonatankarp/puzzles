@@ -168,12 +168,32 @@ export class QueensBoard {
   }
 
   draw(marks: readonly Mark[], conflicts: ReadonlySet<number>, solved: boolean): void {
+    /*
+     * A region that already holds its one queen is settled, so it steps back.
+     * This reports what you have done -- it never points at what to do next,
+     * which is the hint button's job and would quietly make every board easier.
+     * At the win everything comes back up, so the finished board is not muted.
+     */
+    const settled = new Set<number>();
+    const regions = this.puzzle?.regions;
+    if (regions && !solved) {
+      const counts = new Map<number, number>();
+      marks.forEach((mark, cell) => {
+        if (mark !== 'queen') return;
+        const region = regions[cell]!;
+        counts.set(region, (counts.get(region) ?? 0) + 1);
+      });
+      for (const [region, count] of counts) if (count === 1) settled.add(region);
+    }
+
     this.cells.forEach((nodes, cell) => {
       const mark = marks[cell] ?? 'empty';
       nodes.queen.setAttribute('opacity', mark === 'queen' ? '1' : '0');
       nodes.queen.setAttribute('fill', solved ? 'var(--good)' : 'var(--ink)');
       nodes.cross.setAttribute('opacity', mark === 'blocked' ? '0.65' : '0');
       nodes.danger.setAttribute('opacity', conflicts.has(cell) ? '1' : '0');
+      const region = regions?.[cell];
+      nodes.fill.setAttribute('opacity', region !== undefined && settled.has(region) ? '0.45' : '1');
     });
   }
 }

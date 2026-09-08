@@ -7,6 +7,9 @@
  * reconciliation one. React owns the chrome around it; this owns the <svg>.
  */
 import type { Cell, Puzzle } from './engine.ts';
+import { rampColour } from '../../shell/ramp.ts';
+
+export { rampColour };
 
 /** viewBox units per cell. */
 export const U = 100;
@@ -19,24 +22,6 @@ export const LINE = 36;
  * than theme tokens: the ramp is its own visual language and should look the
  * same in both themes.
  */
-const RAMP: Array<[number, number, number]> = [
-  [77, 139, 255],    // blue, at the start
-  [124, 108, 246],
-  [176, 92, 232],
-  [255, 95, 158]     // pink, at the last square
-];
-
-/** Colour of the line a fraction `t` of the way through the board. */
-export function rampColour(t: number): string {
-  const clamped = Math.max(0, Math.min(1, t));
-  const span = (RAMP.length - 1) * clamped;
-  const i = Math.min(RAMP.length - 2, Math.floor(span));
-  const f = span - i;
-  const from = RAMP[i]!;
-  const to = RAMP[i + 1]!;
-  const mix = (a: number, b: number) => Math.round(a + (b - a) * f);
-  return `rgb(${mix(from[0], to[0])}, ${mix(from[1], to[1])}, ${mix(from[2], to[2])})`;
-}
 /** viewBox inset on every side, so strokes are not clipped. */
 export const PAD = 6;
 
