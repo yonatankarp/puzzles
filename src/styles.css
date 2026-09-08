@@ -1,15 +1,26 @@
 /* Dark is the base palette; light applies when the system asks for it, or when
    the theme button pins it. Pinning dark wins over the media query. The two
-   light blocks must stay identical -- test/render.js asserts it. */
+   light blocks must stay identical -- test/render.js asserts it -- and both
+   must redefine every token declared here: a token left out keeps its dark
+   value on a near-white page, which is how the green clock and the red banner
+   ended up unreadable in light. */
 :root {
   --bg: #0e1014;
   --panel: #171a21;
   --board: #131720;
   --line: #272d3a;
+  /* A border reads at a weight that a filled track does not, so the empty
+     progress bar and the unplayed history days get their own, heavier tone. */
+  --track: #272d3a;
   --ink: #e9edf5;
   --dim: #868fa3;
   --accent: #f5b544;
   --accent-ink: #14161c;
+  /* Separate from --accent for the same reason --path-btn is separate from
+     --path, in the other direction: amber is a surface here (a pressed pill, a
+     numbered circle) and a foreground there (the focus ring, a pressed icon).
+     In light no single amber can both carry dark ink and stand on white. */
+  --ring: #f5b544;
   --path: #4d8bff;
   --path-ink: #ffffff;
   /* Separate from --path: a stroke that reads well on the board is too light
@@ -19,20 +30,27 @@
   --good: #35d07f;
   --bad: #ff6259;
   --shadow: 0 14px 44px rgba(0, 0, 0, .5);
+  --count-shadow: 0 8px 30px rgba(0, 0, 0, .55);
 }
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
     --bg: #f2f4f8; --panel: #ffffff; --board: #ffffff; --line: #e0e5ef;
-    --ink: #121722; --dim: #5f6878; --accent: #f0a92c; --accent-ink: #221a05;
-    --path: #2f6bff; --path-btn: #2455d6; --wall: #2c3446;
+    --track: #b0bacd; --ink: #121722; --dim: #5f6878;
+    --accent: #f0a92c; --accent-ink: #221a05; --ring: #a8660a;
+    --path: #2f6bff; --path-ink: #ffffff; --path-btn: #2455d6; --wall: #2c3446;
+    --good: #0f7a44; --bad: #c62f26;
     --shadow: 0 14px 40px rgba(20, 30, 60, .12);
+    --count-shadow: 0 8px 26px rgba(20, 30, 60, .18);
   }
 }
 :root[data-theme="light"] {
   --bg: #f2f4f8; --panel: #ffffff; --board: #ffffff; --line: #e0e5ef;
-  --ink: #121722; --dim: #5f6878; --accent: #f0a92c; --accent-ink: #221a05;
-  --path: #2f6bff; --path-btn: #2455d6; --wall: #2c3446;
+  --track: #b0bacd; --ink: #121722; --dim: #5f6878;
+  --accent: #f0a92c; --accent-ink: #221a05; --ring: #a8660a;
+  --path: #2f6bff; --path-ink: #ffffff; --path-btn: #2455d6; --wall: #2c3446;
+  --good: #0f7a44; --bad: #c62f26;
   --shadow: 0 14px 40px rgba(20, 30, 60, .12);
+  --count-shadow: 0 8px 26px rgba(20, 30, 60, .18);
 }
 
 * { box-sizing: border-box; }
@@ -46,7 +64,7 @@
 /* Keyboard users need to see where they are; pointer users should not get a
    ring on every click, hence :focus-visible rather than :focus. */
 :where(button, [tabindex]):focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ring);
   outline-offset: 3px;
 }
 .board-region:focus-visible { outline-offset: 6px; border-radius: 18px; }
@@ -77,13 +95,40 @@ header { display: flex; align-items: center; gap: 10px; }
   appearance: none; border: 1px solid var(--line); background: var(--panel);
   color: var(--dim); width: 34px; height: 34px; border-radius: 9px;
   display: grid; place-items: center; cursor: pointer; padding: 0;
+  position: relative;
+}
+/* Hit slop. 34px clears WCAG 2.5.8 AA but not Apple's 44px, and back / help /
+   sound / theme sit in one row where a thumb slip lands on the wrong one. The
+   visible box stays 34px -- growing it would crowd the wordmark out of the
+   header -- and an invisible pseudo-element carries the touch target instead.
+   The horizontal reach is exactly half the header gap on each side, so
+   neighbours meet without ever overlapping: overlapping slop hands the tap to
+   whichever button comes later in the DOM, which is a worse slip than the one
+   being fixed. Nothing sits above or below, so the vertical reach is free.
+   The inset is one pixel deeper than the reach because it is measured from the
+   padding box, inside the 1px border -- -6px is 5px of reach, and 44px across.
+   Absolutely positioned, so it is not a second item in the icon's own grid. */
+.icon-btn::after {
+  content: ''; position: absolute; inset: -6px; border-radius: 13px;
 }
 .icon-btn:hover { color: var(--ink); }
-.icon-btn[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+.icon-btn[aria-pressed="true"] { color: var(--ring); border-color: var(--ring); }
 
 /* ------------------------------------------------------------------- tiers */
 .tiers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-.modes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+/* The mode switch and the difficulty tiers are the same pill, so in practice
+   mode they stack into what reads as one six-button row. Picking a mode is a
+   state the whole game is in, not a choice among peers, so the switch sits in
+   its own inset track with a raised selection -- two controls, not six pills. */
+.modes {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px;
+  padding: 3px; border: 1px solid var(--line); border-radius: 13px;
+}
+.modes .tier { border-color: transparent; background: transparent; border-radius: 10px; }
+.modes .tier[aria-pressed="true"] {
+  background: var(--panel); border-color: var(--line); color: var(--ink);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .22);
+}
 .daily {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   border: 1px solid var(--line); background: var(--panel); border-radius: 10px;
@@ -132,7 +177,7 @@ svg.board.covered { opacity: .5; pointer-events: none; }
 .count {
   font: 700 76px/1 ui-monospace, "SF Mono", Menlo, monospace;
   color: var(--ink); font-variant-numeric: tabular-nums;
-  text-shadow: 0 8px 30px rgba(0, 0, 0, .55);
+  text-shadow: var(--count-shadow);
 }
 .count span { display: inline-block; animation: countPop .45s ease-out; }
 @keyframes countPop {
@@ -142,7 +187,7 @@ svg.board.covered { opacity: .5; pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { .count span { animation: none; } }
 svg.board { width: 100%; height: auto; display: block; touch-action: none; cursor: crosshair; }
 svg.board.busy { opacity: .3; pointer-events: none; }
-.progress { height: 3px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.progress { height: 3px; border-radius: 3px; background: var(--track); overflow: hidden; }
 .progress i { display: block; height: 100%; width: 0; background: var(--path); transition: width .12s linear; }
 .progress i.done { background: var(--good); }
 
@@ -179,16 +224,16 @@ svg.board.busy { opacity: .3; pointer-events: none; }
 .chip[aria-pressed="true"] { color: var(--ink); border-color: var(--dim); }
 .chip .dot {
   display: inline-block; width: 6px; height: 6px; border-radius: 50%;
-  background: var(--line); margin-right: 6px; vertical-align: 1px;
+  background: var(--track); margin-right: 6px; vertical-align: 1px;
 }
 .chip[aria-pressed="true"] .dot { background: var(--good); }
 .history { display: flex; flex-direction: column; gap: 7px; }
 .history-days { display: flex; gap: 3px; }
 .history-days i {
-  flex: 1; height: 16px; border-radius: 3px; background: var(--line);
+  flex: 1; height: 16px; border-radius: 3px; background: var(--track);
 }
 .history-days i.done { background: var(--good); }
-.history-days i.hinted { background: var(--accent); }
+.history-days i.hinted { background: var(--ring); }
 .history-summary {
   display: flex; justify-content: space-between; gap: 10px;
   color: var(--dim); font-size: 12.5px; font-variant-numeric: tabular-nums;
@@ -202,7 +247,7 @@ svg.board.busy { opacity: .3; pointer-events: none; }
   border-radius: 6px; display: inline-flex; align-items: center; gap: 5px;
 }
 .version:hover { color: var(--ink); }
-.version .pip { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.version .pip { width: 6px; height: 6px; border-radius: 50%; background: var(--ring); }
 
 .sheet {
   position: fixed; inset: 0; z-index: 30; display: grid; place-items: end center;
@@ -221,7 +266,37 @@ svg.board.busy { opacity: .3; pointer-events: none; }
   padding: 14px 16px; border-bottom: 1px solid var(--line);
 }
 .sheet-head h2 { margin: 0; font-size: 16px; font-weight: 650; }
-.sheet-body { overflow-y: auto; padding: 4px 16px 20px; -webkit-overflow-scrolling: touch; }
+/* The close X is alone in its row, so its slop can reach the panel's corner --
+   the far side of the header padding on the outside, the h2's dead space on
+   the inside. Nothing else here is tappable, so nothing can be stolen. */
+.sheet-head .icon-btn::after { inset: -8px -11px; }
+/*
+ * A fixed-position child does not inherit the body's safe-area padding, so a
+ * sheet pinned to the bottom of the screen ran its last line under the home
+ * indicator -- and under the swipe that dismisses the app.
+ */
+.sheet-body {
+  overflow-y: auto; padding: 4px 16px calc(20px + env(safe-area-inset-bottom));
+  -webkit-overflow-scrolling: touch;
+}
+/*
+ * A sheet that ends in its own dismiss button carries the inset there instead;
+ * doubling it would leave a dead strip at the end of the scroll.
+ */
+.sheet-panel:has(.sheet-foot) .sheet-body { padding-bottom: 12px; }
+/*
+ * The only affirmative way out used to be a 31px X in the top-right corner --
+ * the one place a thumb cannot reach on the phone this is played on, and a
+ * backdrop tap is not something anyone discovers. This is pinned below the
+ * scrolling body rather than sitting at the end of it, so it is reachable
+ * without reading to the bottom first.
+ */
+.sheet-foot {
+  flex: none; padding: 10px 16px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line); background: var(--panel);
+  border-radius: 0 0 16px 16px;
+}
+.sheet-dismiss { width: 100%; padding: 14px 12px; font-size: 15px; font-weight: 600; }
 .release { padding: 16px 0; border-bottom: 1px solid var(--line); }
 .release:last-child { border-bottom: 0; }
 .release h3 {
@@ -240,14 +315,37 @@ svg.board.busy { opacity: .3; pointer-events: none; }
 }
 .tag-added { background: color-mix(in srgb, var(--good) 22%, transparent); color: var(--good); }
 .tag-changed { background: color-mix(in srgb, var(--path) 22%, transparent); color: var(--path); }
-.tag-fixed { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--accent); }
+.tag-fixed { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--ring); }
 
 .hint { color: var(--dim); font-size: 11.5px; text-align: center; line-height: 1.9; }
 kbd {
   font: 11px/1 ui-monospace, Menlo, monospace; border: 1px solid var(--line);
   border-bottom-width: 2px; border-radius: 4px; padding: 2px 5px; color: var(--ink);
 }
-@media (max-width: 380px) { .hint { display: none; } }
+/* The hint line is the only persistent statement of the controls outside the
+   rules sheet -- on Queens it is the only place tapping and dragging are
+   written down -- so on a narrow phone it shrinks rather than disappearing. */
+@media (max-width: 380px) {
+  .hint { font-size: 11px; line-height: 1.85; }
+  .hint kbd { padding: 2px 4px; }
+}
+/*
+ * Which keys exist is a question about the input, not about the width: a 390pt
+ * iPhone and a 430pt Pro Max are both above every width breakpoint here, so a
+ * phone was being shown a row of keys it has no way to press, in the part of
+ * the screen the thumb wants. Gate the key list on the pointer instead. The
+ * row itself stays -- on Queens it is the only standing statement of the touch
+ * controls outside the rules sheet -- and the rules sheet's own <kbd>s stay
+ * too, because there "drag" and "tap" are among them.
+ */
+/*
+ * A touch screen cannot press any of these, and the row sits in the thumb zone.
+ * The whole clause goes, not just the key caps: hiding those alone left the
+ * words between them stranded -- "move · undo · hint · restart · new".
+ */
+@media (hover: none) and (pointer: coarse) {
+  .hint .keys { display: none; }
+}
 
 /* ------------------------------------------------------------------- index */
 .index { display: flex; flex-direction: column; gap: 16px; }
@@ -260,7 +358,7 @@ kbd {
   transition: border-color .12s, transform .12s;
 }
 .card:hover { border-color: var(--dim); transform: translateY(-1px); }
-.card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.card:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
 .card-head { display: flex; align-items: center; gap: 8px; font-size: 16px; }
 .card-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--card, var(--accent)); }
 .card-streak { margin-left: auto; font-size: 12.5px; }
@@ -287,13 +385,30 @@ kbd {
 .rules-tips { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; }
 .rules-tips li { font-size: 12.5px; line-height: 1.55; }
 
-/* The header gained a button per feature; below this it no longer fits, and
-   the wordmark is the least useful thing on it. */
+/* The header gained a button per feature; below this it stops fitting on its
+   own terms. The wordmark shrinks and, if it still has to, truncates -- on the
+   index it is the only thing naming the app and in a game the only thing
+   naming the game, so hiding it left the page anonymous. min-width: 0 is what
+   makes truncation possible: without it the flex item refuses to go below its
+   own text and pushes the header wider than the screen. */
 @media (max-width: 380px) {
   header { gap: 6px; }
-  .brand-title { display: none; }
-  .icon-btn { width: 31px; height: 31px; }
-  .clock { font-size: 22px; }
+  .brand { min-width: 0; font-size: 15px; }
+  .brand svg { flex: none; }
+  .brand-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .icon-btn { width: 31px; height: 31px; flex: none; }
+  /* Half of the tightened 6px gap each side: 37px across, still touching
+     rather than overlapping. Nothing above or below has moved, so the vertical
+     reach stays what it was. */
+  .icon-btn::after { inset: -6px -4px; }
+  .clock { font-size: 22px; flex: none; }
+}
+@media (max-width: 340px) {
+  header { gap: 5px; }
+  .brand { gap: 6px; font-size: 13.5px; }
+  .icon-btn { width: 29px; height: 29px; }
+  .icon-btn::after { inset: -7px -3.5px; }
+  .clock { font-size: 20px; }
 }
 
 /* A button that reads as a link: used where a full button would compete with
@@ -304,4 +419,100 @@ kbd {
   text-underline-offset: 3px; cursor: pointer; border-radius: 8px;
 }
 .linkish:hover { color: var(--ink); }
-.linkish:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.linkish:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+/* --------------------------------------------------------------- landscape */
+/*
+ * A phone turned sideways has about 390px of height, and the page was still
+ * stacking header, board, controls and hint down it: the board ran 180px past
+ * the fold and the controls sat 210px below that, so a timed game asked you to
+ * scroll mid-solve -- the worst failure this app has -- while 215px of empty
+ * page sat either side of the board. On the ready gate it was worse still:
+ * Start's bottom edge was flush with the viewport and "How to play" was off
+ * screen entirely.
+ *
+ * So in a short landscape viewport the board is bounded by height rather than
+ * width, and the chrome moves beside it instead of above and below. Everything
+ * is then on screen at once and nothing scrolls.
+ *
+ * Only a page that has a board rearranges: the index is a list, and a list is
+ * right to keep reading down.
+ */
+@media (orientation: landscape) and (max-height: 520px) {
+  body {
+    padding:
+      max(8px, env(safe-area-inset-top))
+      max(12px, env(safe-area-inset-right))
+      calc(8px + env(safe-area-inset-bottom))
+      max(12px, env(safe-area-inset-left));
+  }
+
+  .wrap:has(.boardwrap) {
+    max-width: none;
+    display: grid;
+    /* The board takes what it needs; the chrome takes the rest, up to the
+       width it would have had in portrait. Centred as a pair, so a wide
+       landscape does not strand the controls against the far edge. */
+    grid-template-columns: auto minmax(0, 460px);
+    justify-content: center;
+    column-gap: 18px;
+    row-gap: 6px;
+    /* Row 4 is the slack. The board spans rows 1-8 and is taller than they
+       need, and without a flexible track that surplus is shared out evenly and
+       drifts every row apart. Pinning it to one track keeps the header group
+       at the top and drops the controls, status and hint to the bottom -- which
+       in landscape is where a thumb already is. */
+    grid-template-rows: auto auto auto 1fr auto auto auto auto auto;
+  }
+  /* Anything not placed below would auto-flow into column 1 and land on top of
+     the board; this is the floor under that. Every rule that follows repeats
+     the :has() so it outranks this one -- specificity, not source order,
+     decides between them. */
+  .wrap:has(.boardwrap) > * { grid-column: 2; }
+
+  .wrap:has(.boardwrap) > .boardwrap {
+    grid-column: 1; grid-row: 1 / 9; justify-self: center; align-self: start;
+    /* The one number that matters: the board can be no taller than the
+       viewport less the page padding, the progress bar, and the row it shares
+       with the version button. Every board here is square, so bounding the
+       width bounds the height; the max-height below is the belt to that brace. */
+    width: min(
+      44vw,
+      calc(100dvh - 52px - env(safe-area-inset-top) - env(safe-area-inset-bottom))
+    );
+  }
+  .wrap:has(.boardwrap) > .progress { grid-column: 1; grid-row: 9; align-self: start; }
+  .wrap:has(.boardwrap) > header { grid-row: 1; }
+  .wrap:has(.boardwrap) > .modes { grid-row: 2; }
+  .wrap:has(.boardwrap) > .tiers,
+  .wrap:has(.boardwrap) > .daily { grid-row: 3; }
+  .wrap:has(.boardwrap) > .controls { grid-row: 5; }
+  .wrap:has(.boardwrap) > .status { grid-row: 6; }
+  /* Practice adds a second status row -- auto-next and the session summary --
+     and daily adds the history strip instead. The two never appear together,
+     so they share row 7 rather than each holding a row the other leaves empty. */
+  .wrap:has(.boardwrap) > .status + .status { grid-row: 7; }
+  .wrap:has(.boardwrap) > .history { grid-row: 7; }
+  .wrap:has(.boardwrap) > .hint { grid-row: 8; }
+  .wrap:has(.boardwrap) > .footer { grid-row: 9; }
+
+  svg.board {
+    max-height: calc(100dvh - 52px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  }
+
+  /* Tighter chrome, so the slack row stays real rather than being eaten. */
+  .btn { padding: 10px 2px; }
+  .daily { min-height: 38px; padding: 6px 10px 6px 12px; }
+  .hint { line-height: 1.5; }
+
+  /* A bottom sheet with 24px of headroom on a 390px screen is throwing away
+     the only dimension in short supply. */
+  .sheet { padding: 8px 12px 0; }
+  .sheet-panel { max-height: calc(100dvh - 8px); }
+  .sheet-head { padding: 10px 16px; }
+  .sheet-foot { padding: 8px 16px calc(8px + env(safe-area-inset-bottom)); }
+  .sheet-dismiss { padding: 13px 12px; }
+  .rules-goal { margin-top: 10px; }
+  .diagram { width: 132px; margin: 10px auto 2px; }
+  .rules-heading { margin-top: 14px; }
+}

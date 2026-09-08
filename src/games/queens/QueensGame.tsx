@@ -79,6 +79,7 @@ export default function QueensGame({ shared, onBack }: Props) {
         />
         <Controls
           mode={snap.mode}
+          phase={snap.phase}
           onNew={() => core.newPuzzle()}
           onRestart={() => core.restart()}
           onUndo={() => core.undo()}
@@ -95,9 +96,12 @@ export default function QueensGame({ shared, onBack }: Props) {
           </button>
         </div>
         <div className="hint">
-          tap a square to mark it, again for a queen · drag to cross off a row ·{' '}
-          <kbd>U</kbd> undo ·{' '}
-          <kbd>H</kbd> hint · <kbd>R</kbd> restart · <kbd>N</kbd> new
+          tap a square to mark it, again for a queen · drag to cross off a row
+          <span className="keys">
+            {' · '}<kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> move ·{' '}
+            <kbd>space</kbd> mark · <kbd>X</kbd> cross off ·{' '}
+            <kbd>U</kbd> undo · <kbd>H</kbd> hint · <kbd>R</kbd> restart · <kbd>N</kbd> new
+          </span>
         </div>
       </div>
     </>

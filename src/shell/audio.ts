@@ -75,6 +75,25 @@ export class Audio {
     this.buzz(8);
   }
 
+  /*
+   * A move that lands somewhere it cannot stay. Deliberately the inverse of
+   * number(): two short tones falling rather than rising, lower and quickly
+   * gone, with a double tap instead of a single one -- so a mistake can never
+   * be felt or heard as progress.
+   *
+   * It plays wherever number() plays, 'all' and 'sparse' alike, because it
+   * stands in for that chime rather than adding to it. On 'numbers and wins' a
+   * chime for a good placement and silence for a bad one would read as a tap
+   * that never registered, which is worse than no cue at all.
+   */
+  clash(): void {
+    if (!this.audible) return;
+    this.ensure();
+    this.tone(196, 0, 0.1, 0.05, 'triangle');
+    this.tone(146.83, 0.055, 0.14, 0.04, 'triangle');
+    this.buzz([22, 44, 22]);
+  }
+
   win(isBest: boolean): void {
     if (!this.audible) return;
     this.ensure();

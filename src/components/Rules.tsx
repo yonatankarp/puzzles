@@ -78,6 +78,19 @@ export default function Rules({ game, onClose }: Props) {
             {game.howTo.tips.map((tip, i) => <li key={i} className="muted">{tip}</li>)}
           </ul>
         </div>
+
+        {/*
+          * The X in the top-right corner was the only affirmative way out, and
+          * on a phone held one-handed that is the hardest point on the screen
+          * to reach -- a backdrop tap being something nobody discovers. This is
+          * the same dismissal, where the thumb already is. It sits outside the
+          * scrolling body on purpose, so it never has to be read down to.
+          */}
+        <footer className="sheet-foot">
+          <button className="btn primary sheet-dismiss" id="rulesGotIt" onClick={onClose}>
+            Got it
+          </button>
+        </footer>
       </div>
     </div>
   );

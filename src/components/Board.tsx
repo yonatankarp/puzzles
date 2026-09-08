@@ -1,5 +1,6 @@
 import type { Ref } from 'react';
 import type { Snapshot } from '../shell/types.ts';
+import { gameById } from '../shell/registry.ts';
 import ReadyGate from './ReadyGate.tsx';
 
 interface Props {
@@ -28,6 +29,15 @@ export default function Board({ ref, regionRef, announcerRef, snap, onStart, onH
     `${snap.done} of ${snap.total} ${snap.unit}. ` +
     (snap.solved ? 'Solved.' : snap.goal);
   const hidden = snap.phase !== 'playing';
+  /*
+   * This frame is shared, so the instructions behind aria-describedby cannot be
+   * written into it: the literal that used to sit here read out Zip's rules and
+   * Zip's keys to anyone playing Queens. Each game states its own, once, in the
+   * registry beside the rules the sheet shows. Nothing from the snapshot stands
+   * in for it: this is instructions, and instructions that changed as the run
+   * went along would be read out afresh every time they did.
+   */
+  const help = gameById(snap.gameId)?.howTo.help ?? '';
 
   return (
     <>
@@ -53,16 +63,13 @@ export default function Board({ ref, regionRef, announcerRef, snap, onStart, onH
           </b>
         </div>
       </div>
-      <p id="boardHelp" className="sr-only">
-        Draw one line through every square, starting at number 1 and taking the
-        numbers in order, without crossing a wall. Use the arrow keys to extend
-        the line, U to undo a square, H for a hint, R to restart.
-      </p>
+      <p id="boardHelp" className="sr-only">{help}</p>
       <div id="announcer" className="sr-only" aria-live="polite" aria-atomic="true" ref={announcerRef} />
+      {/* What the bar counts is the game's own word for it, not Zip's. */}
       <div
         className="progress"
         role="progressbar"
-        aria-label="Squares filled"
+        aria-label={snap.unit}
         aria-valuemin={0}
         aria-valuemax={snap.total}
         aria-valuenow={snap.done}

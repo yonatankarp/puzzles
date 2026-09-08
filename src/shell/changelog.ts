@@ -25,6 +25,33 @@ export interface Release {
 /** Newest first. */
 export const RELEASES: Release[] = [
   {
+    version: '2.4.0',
+    date: '2026-09-08',
+    summary: 'Queens tells you when a queen is wrong; the daily stops being one tap from lost.',
+    changes: [
+      { kind: 'fixed', text: 'A queen that clashed got the same rising chime as one that was right, because the board played the sound before it had checked the rules. A clash now gets its own cue — two short falling notes and a double buzz — so a mistake can no longer be heard as progress. It plays on the sparse sound setting as well as the full one: silence would just read as a tap that never registered.' },
+      { kind: 'fixed', text: 'The progress bar counted queens that were clashing, so it went up when you made an illegal move while the board was ringing that same queen in red. Only queens standing legally count now, and the board tells you how many are clashing instead.' },
+      { kind: 'fixed', text: 'Pinning the light theme on a machine set to dark left the Queens board in its dark colours, so near-white grid lines sat over dark regions and the grid shouted louder than the region shapes it was drawn under. The regions now follow the theme you actually chose — and follow it the moment you change it, rather than waiting for the next board.' },
+      { kind: 'added', text: 'Solving a Queens board is now worth something to look at: the board gives a small pop and the crowns rise one after another in the order you placed them, replaying the run. The crossed-off squares fade away with them — they were your working, not part of the answer.' },
+      { kind: 'changed', text: 'A colour region that holds its one queen still steps back, but it no longer takes the whole board down with it. The effect eases off as you get closer to finishing, and starts gentler in dark, where the region colours had been dimmed almost into the board. It still only ever reports what you have already done.' },
+      { kind: 'fixed', text: 'With a screen reader, placing a queen read out its square whether the move was sound or hopeless — the red ring that carries the news is the one thing you cannot see. It now says what the new queen clashes with, and where that queen is.' },
+      { kind: 'fixed', text: 'The colour regions were painted over the rounded corners of the Queens board, squaring them off.' },
+      { kind: 'fixed', text: 'Reveal sat next to Hint, looked identical to it, and gave away the day\u2019s puzzle on a single tap — with the board still covered, so nothing warned you and nothing looked different afterwards. Solving it honestly then recorded nothing at all and broke the streak. It now asks before it answers, and the controls that cannot act on a covered board no longer pretend they can.' },
+      { kind: 'fixed', text: 'The best time beside the daily was your practice best at that size, so it sat next to the history\u2019s daily best disagreeing with it, and a daily solve could never move the number printed next to it.' },
+      { kind: 'changed', text: 'Coming back to a daily you have already solved no longer offers a Start button that leads nowhere. It shows what you did, how long the streak is, when the next one lands, and where to go in the meantime.' },
+      { kind: 'changed', text: 'The daily now says which difficulty it is, rather than only its size — Queens starts you on Hard, which is worth knowing before the clock does.' },
+      { kind: 'fixed', text: 'In the light theme the solved clock, the win banner and the error banner were printed in colours that had never been given light values, leaving them close to unreadable on a pale background — the winning time worst of all, at a fifth of the contrast it needed. The keyboard focus ring had the same problem and was near-invisible.' },
+      { kind: 'fixed', text: 'Narrow phones dropped both the line describing the controls and the name of the game you were playing. For Queens that line was the only standing mention of dragging to cross a row off. Both now shrink instead of disappearing.' },
+      { kind: 'changed', text: 'The mode switch no longer looks like four more difficulty buttons.' },
+      { kind: 'added', text: 'Queens can be played from the keyboard. Arrows move a cursor, space marks a square the way tapping does, and X crosses one off. Until now the only key that could place a queen was the hint key, which meant the game could not be finished from the keyboard at all without it counting as a hint.' },
+      { kind: 'fixed', text: 'The board told screen-reader users Zip\u2019s rules while they were playing Queens — how to draw a line through numbered squares, on a board with no line and no numbers — and reported progress in squares filled rather than queens. Each game now describes itself.' },
+      { kind: 'fixed', text: 'Turning a phone sideways pushed the buttons a screen and a half below the board, so a timed game had to be scrolled while the clock ran. Landscape now puts the board beside the controls, with both fully on screen.' },
+      { kind: 'changed', text: 'The row of keyboard shortcuts no longer appears on touch screens, which cannot press any of them. The part about tapping and dragging stays.' },
+      { kind: 'changed', text: 'The rules sheet has a Got it button at the bottom, rather than only a small ✕ in the far corner, and no longer runs its last line under the home indicator.' },
+      { kind: 'changed', text: 'The small round buttons in the header now take a tap from a little outside their edges. They look the same; they are just harder to miss.' }
+    ]
+  },
+  {
     version: '2.3.0',
     date: '2026-09-08',
     summary: 'Cross off a whole row in Queens with one drag.',

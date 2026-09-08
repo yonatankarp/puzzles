@@ -90,6 +90,7 @@ export default function ZipGame({ shared, onBack }: Props) {
         />
         <Controls
           mode={snap.mode}
+          phase={snap.phase}
           onNew={() => core.newPuzzle()}
           onRestart={() => core.restart()}
           onUndo={() => core.undo()}
@@ -106,8 +107,11 @@ export default function ZipGame({ shared, onBack }: Props) {
           </button>
         </div>
         <div className="hint">
-          drag from <b>1</b> · <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> move ·{' '}
-          <kbd>U</kbd> undo · <kbd>H</kbd> hint · <kbd>R</kbd> restart · <kbd>N</kbd> new
+          drag from <b>1</b>
+          <span className="keys">
+            {' · '}<kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> move ·{' '}
+            <kbd>U</kbd> undo · <kbd>H</kbd> hint · <kbd>R</kbd> restart · <kbd>N</kbd> new
+          </span>
         </div>
       </div>
     </>

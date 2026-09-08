@@ -15,7 +15,7 @@
 import { Audio, SOUND_MODES, type SoundMode } from './audio.ts';
 import { Fx } from './fx.ts';
 import {
-  clearProgress, dayNumber, formatDuration, readProgress, readResult, seedForDay,
+  clearProgress, dayNumber, formatDuration, history, readProgress, readResult, seedForDay,
   setClock, shareText, streak, writeProgress, writeResult
 } from './daily.ts';
 import { read as readPref, write as writePref } from './prefs.ts';
@@ -249,7 +249,7 @@ export abstract class ShellCore<P> {
       unit: p.unit,
       goal: p.goal,
       solved: this.solved,
-      best: this.bestTime(),
+      best: this.shownBest(),
       difficulty: tier,
       difficultyLabel: this.tierLabel(tier),
       difficulties: this.tiers(),
@@ -272,6 +272,18 @@ export abstract class ShellCore<P> {
   private bestTime(): number | null {
     const value = readPref(this.bestKey());
     return value === null ? null : Number(value);
+  }
+
+  /*
+   * The best the row is standing next to. Practice bests are kept per tier, and
+   * the daily is not one of those tiers -- so in daily mode the practice record
+   * was being shown beside a daily label, next to a history strip quoting a
+   * different best entirely, for a time the day's play could never beat. The
+   * daily's own best is what belongs there, computed over the same 30 days the
+   * strip below it reports.
+   */
+  private shownBest(): number | null {
+    return this.mode === 'daily' ? history(this.gameId, this.day).best : this.bestTime();
   }
 
   // ---- the clock ---------------------------------------------------------------
@@ -482,7 +494,14 @@ export abstract class ShellCore<P> {
   protected checkRollover(): void {
     if (this.mode !== 'daily') return;
     if (dayNumber() === this.day) return;
-    const untouched = this.progress().done === 0;
+    /*
+     * Idle means "no moves made", which is not the same as "no progress shown".
+     * Queens stopped counting clashing queens towards done, so a board carrying
+     * only clashing queens reported done === 0 and a run someone was in the
+     * middle of would have been swapped out from under them at UTC midnight.
+     * The recorded moves are the honest answer and are game-agnostic.
+     */
+    const untouched = this.encodeMoves().length === 0;
     if (untouched || this.solved || this.revealed) this.loadDaily();
   }
 
@@ -529,9 +548,27 @@ export abstract class ShellCore<P> {
 
   // ---- actions --------------------------------------------------------------------
 
+  /*
+   * Nothing but Start does anything useful on a covered board, and one of them
+   * was a trap: Reveal set `revealed` without touching `phase`, so a daily given
+   * away from the gate was drawn under the cover and then never recorded,
+   * however honestly it was finished afterwards -- no result, no streak, and
+   * nothing on screen saying so. So the board's own controls stay out of the way
+   * until there is something to act on, and say why rather than doing nothing at
+   * all -- they cannot be greyed out from here, since the row is handed only the
+   * mode.
+   */
+  private notPlaying(): boolean {
+    if (this.phase === 'playing') return false;
+    if (this.phase === 'ready' && this.puzzle) {
+      this.setBanner({ text: 'Start first', kind: 'bad', sub: 'the board is still covered' }, 1600);
+    }
+    return true;
+  }
+
   restart(): void {
     clearTimeout(this.advanceTimer);
-    if (!this.puzzle) return;
+    if (!this.puzzle || this.notPlaying()) return;
     this.solved = false;
     this.revealed = false;
     /*
@@ -551,11 +588,11 @@ export abstract class ShellCore<P> {
     this.markDirty();
   }
 
-  undo(): void { this.onUndo(); }
-  hint(): void { clearTimeout(this.advanceTimer); this.onHint(); }
+  undo(): void { if (this.notPlaying()) return; this.onUndo(); }
+  hint(): void { if (this.notPlaying()) return; clearTimeout(this.advanceTimer); this.onHint(); }
 
   reveal(): void {
-    if (!this.puzzle) return;
+    if (!this.puzzle || this.notPlaying()) return;
     clearTimeout(this.advanceTimer);
     this.stopClock();
     this.revealed = true;

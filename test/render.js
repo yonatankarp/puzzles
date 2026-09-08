@@ -198,8 +198,9 @@ section('the two routes to a light palette must agree');
 // those lists drift, the same user gets two different palettes.
 {
   const page = await open({ scheme: 'light' });
-  const TOKENS = ['--bg', '--panel', '--board', '--line', '--ink', '--dim',
-                  '--accent', '--accent-ink', '--path', '--path-btn', '--wall', '--shadow'];
+  const TOKENS = ['--bg', '--panel', '--board', '--line', '--track', '--ink', '--dim',
+                  '--accent', '--accent-ink', '--ring', '--path', '--path-ink', '--path-btn',
+                  '--wall', '--good', '--bad', '--shadow', '--count-shadow'];
   const read = `
     const cs = getComputedStyle(document.documentElement);
     return ${JSON.stringify(TOKENS)}.map(t => t + '=' + cs.getPropertyValue(t).trim());`;
@@ -227,14 +228,22 @@ section('layout holds across the width range');
         scrollW: d.scrollWidth, clientW: d.clientWidth,
         board: b.getBoundingClientRect().width,
         hint: getComputedStyle(document.querySelector('.hint')).display,
+        title: getComputedStyle(document.querySelector('.brand-title')).display,
+        titleText: document.querySelector('.brand-title').textContent.trim(),
         button: document.getElementById('newBtn').getBoundingClientRect().width
       };`);
     ok(m.scrollW <= m.clientW + 1, `${width}px: page scrolls horizontally (${m.scrollW} > ${m.clientW})`);
     ok(m.board > 120, `${width}px: board collapsed to ${Math.round(m.board)}px`);
     ok(m.button > 40, `${width}px: buttons collapsed to ${Math.round(m.button)}px`);
-    // The keyboard hint is meaningless on a phone and is meant to drop out.
-    if (width <= 380) ok(m.hint === 'none', `${width}px: keyboard hint still shown`);
-    else ok(m.hint !== 'none', `${width}px: keyboard hint hidden on a wide screen`);
+    /*
+     * The hint line used to be dropped below 380px, together with the wordmark.
+     * For Queens that line is the only standing statement of the controls
+     * outside the rules sheet, so the narrowest phones lost the controls and
+     * the title in the same breakpoint. Both now shrink instead of vanishing.
+     */
+    ok(m.hint !== 'none', `${width}px: the control hint is hidden`);
+    ok(m.title !== 'none' && m.titleText.length > 0,
+       `${width}px: the wordmark is hidden (display ${m.title}, text "${m.titleText}")`);
   }
   await page.close();
 }
@@ -1439,8 +1448,13 @@ section('Queens plays');
     };`);
   ok(dimming.count === (await page.eval('return window.__queens.state.puzzle.n ** 2')),
      `expected one fill per cell, found ${dimming.count}`);
-  ok(dimming.settled === '0.45' && dimming.untouched === '1',
-     `settled region is ${dimming.settled}, untouched is ${dimming.untouched}`);
+  // The depth eases as the board fills, so assert the relationship rather than a
+  // number: settled must read as stepped back, and never as far back as it used
+  // to go, which turned a nearly-finished dark board to mud.
+  const settledOpacity = Number(dimming.settled);
+  ok(dimming.untouched === '1', `an untouched region is at ${dimming.untouched}`);
+  ok(settledOpacity < 1 && settledOpacity >= 0.4,
+     `a settled region is at ${dimming.settled}, which is not a step back`);
 
   // Queens drives the same progress ramp as Zip rather than leaving it unset.
   const colour = await page.eval("return getComputedStyle(document.getElementById('progressFill')).backgroundColor");
