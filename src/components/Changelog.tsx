@@ -8,7 +8,8 @@ interface Props {
 const LABEL: Record<ChangeKind, string> = {
   added: 'New',
   changed: 'Changed',
-  fixed: 'Fixed'
+  fixed: 'Fixed',
+  removed: 'Removed'
 };
 
 /*

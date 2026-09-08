@@ -112,38 +112,38 @@ export const GAMES: GameMeta[] = [
         'Placing a queen rules out its whole row and column — drag along them rather than tapping each square.'
       ]
     }
-  },
+  }
+,
   {
-    id: 'comet',
-    code: 'CMT',
-    name: 'Comet',
-    tagline: 'Every square swept by exactly one comet.',
-    rules: 'Fly each comet straight out from its circle so that every square on the board is covered exactly once.',
+    id: 'patch',
+    code: 'PCH',
+    name: 'Patch',
+    tagline: 'A box around every number, covering the board.',
+    rules: 'Draw a rectangle around every number, covering exactly as many squares as the number says, until the whole board is covered.',
     accent: '#f5b544',
     ready: true,
     howTo: {
-      help: 'Every circle is the head of a comet that flies in one straight direction. A number is how long that comet is, counting the head; a circle with no number is one you work out. Cover every square exactly once. Drag from a circle to fly it, press space to step between circles, the arrow keys to fly one and enter for a comet of a single square, U to undo, H for a hint, R to restart.',
-      goal: 'Fly every comet so that each square on the board is covered exactly once.',
+      help: 'Draw a rectangle around every number. The rectangle must cover exactly as many squares as the number says, and hold that one number and no other. When the rectangles cover the whole board without overlapping, the puzzle is done. Drag a box on the board to draw one, tap a patch to take it back. With the keyboard, arrows move, enter sets a corner, arrows stretch the box and enter again draws it; U undoes, H gives a hint, R restarts.',
+      goal: 'Draw a rectangle around every number until the whole board is covered.',
       rules: [
-        { what: 'Every circle is the head of a comet, flying one straight way.', detail: 'Up, down, left or right — never diagonally, and never turning.' },
-        { what: 'A number is how long that comet is, counting the head itself.', detail: 'A circle with no number is one whose length you have to work out.' },
-        { what: 'Every square belongs to exactly one comet.', detail: 'No square left bare, and none claimed twice.' }
+        { what: 'Every number gets a rectangle drawn around it.', detail: 'One number per rectangle — never two, never none.' },
+        { what: 'The rectangle covers exactly as many squares as the number says.', detail: 'A 6 can be 1×6, 2×3, 3×2 or 6×1. Which one is the puzzle.' },
+        { what: 'The rectangles cover the whole board and never overlap.', detail: 'No square left bare, and none covered twice.' }
       ],
       controls: [
-        { keys: 'drag', what: 'From a circle, outwards — the tail follows your finger.' },
-        { keys: 'tap', what: 'A circle on its own is a comet one square long.' },
-        { keys: 'space', what: 'Step to the next circle' },
-        { keys: 'enter', what: 'Fly the circle you are on as a comet of one square' },
-        { keys: '← ↑ ↓ →', what: 'Fly the circle you are on that way' },
-        { keys: 'U', what: 'Take back the last comet' },
-        { keys: 'H', what: 'Hint — flies one comet correctly' },
+        { keys: 'drag', what: 'Draw a box from one corner to the other.' },
+        { keys: 'tap', what: 'A tap inside a finished patch takes it back.' },
+        { keys: '← ↑ ↓ →', what: 'Move around the board' },
+        { keys: 'enter', what: 'Set one corner, stretch with the arrows, then enter again to draw it' },
+        { keys: 'U', what: 'Take back the last patch' },
+        { keys: 'H', what: 'Hint — draws one patch correctly' },
         { keys: 'R', what: 'Clear the board (the clock keeps running)' },
         { keys: 'code', what: 'The code under the board names this exact puzzle. Share it to set someone the same board, or paste one you were sent.' }
       ],
       tips: [
-        'A tail can never pass through another circle, so a circle hemmed in by neighbours has very few ways to fly.',
-        'The square in a corner or against an edge is often reachable by only one comet — find it and that comet is settled.',
-        'Numbers are scarce on purpose. Most of the board is worked out from which squares are left over, not from what is written on it.'
+        'Start with the numbers that can only go one way: a 5 or a 7 has to be a single straight strip, and near an edge there is usually only one place to put it.',
+        'A square in a corner can only be reached by a few numbers. Work out which, and that number is settled.',
+        'Drawing a box over patches you have already made rubs them out, so you can correct yourself without undoing first.'
       ]
     }
   }

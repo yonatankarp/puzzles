@@ -6,7 +6,7 @@
  * fall out of step. Entries correspond to things that actually reached the
  * deployed site, not to every commit.
  */
-export type ChangeKind = 'added' | 'changed' | 'fixed';
+export type ChangeKind = 'added' | 'changed' | 'fixed' | 'removed';
 
 export interface Change {
   kind: ChangeKind;
@@ -24,6 +24,16 @@ export interface Release {
 
 /** Newest first. */
 export const RELEASES: Release[] = [
+  {
+    version: '2.8.0',
+    date: '2026-09-08',
+    summary: 'Comet is gone. Patch takes its place.',
+    changes: [
+      { kind: 'added', text: 'Patch. Draw a rectangle around every number, covering exactly as many squares as the number says, until the whole board is covered and nothing overlaps. A 6 can be 1×6, 2×3, 3×2 or 6×1 — working out which is the puzzle. Drag a box to draw one; tap a patch to take it back; draw over your own work to correct it without undoing first.' },
+      { kind: 'removed', text: 'Comet, after one release. It was a puzzle you could not get into: to stop boards solving themselves it withheld nearly every number, which left sixteen identical blank circles and no obvious first move, nothing to tell you a move was right, and a finish line you could only check at the very end.' },
+      { kind: 'changed', text: 'Patch is built against exactly those faults. Every number is shown. Every move is checked against one number — count the squares, compare — so the board never has to be held in your head. And a board is not published unless at least two of its numbers have only one rectangle that fits before you have drawn anything: somewhere to start is a condition of publishing, not a hope.' }
+    ]
+  },
   {
     version: '2.7.0',
     date: '2026-09-08',

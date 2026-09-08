@@ -20,7 +20,7 @@ export function renderMarkdown(releases = RELEASES) {
   ];
   for (const release of releases) {
     lines.push(`## ${release.version} — ${release.date}`, '', release.summary, '');
-    for (const kind of ['added', 'changed', 'fixed']) {
+    for (const kind of ['added', 'changed', 'removed', 'fixed']) {
       const of = release.changes.filter(c => c.kind === kind);
       if (!of.length) continue;
       lines.push(`### ${LABEL[kind]}`, '');

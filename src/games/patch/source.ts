@@ -1,22 +1,21 @@
 /*
- * Where Comet boards come from: a worker when there is one, a direct call
- * otherwise. A board is cheap here -- a couple of milliseconds -- but the tier
- * search can retry a few hundred times for an expert band, and that is enough
- * to be worth keeping off the thread that is drawing.
+ * Where Patch boards come from: a worker when there is one, a direct call
+ * otherwise. Refining a 9x9 until it is unique takes long enough to drop frames
+ * on the board still on screen.
  */
-import { generateDifficulty, type DifficultyName, type CometPuzzle } from './engine.ts';
+import { generateDifficulty, type DifficultyName, type PatchPuzzle } from './engine.ts';
 import { generateDaily } from './daily.ts';
-import type { CometRequest, CometReply } from './generate.worker.ts';
+import type { PatchRequest, PatchReply } from './generate.worker.ts';
 
-export class CometSource {
+export class PatchSource {
   private worker: Worker | null = null;
   private seq = 0;
-  private waiting = new Map<number, (puzzle: CometPuzzle | null) => void>();
+  private waiting = new Map<number, (puzzle: PatchPuzzle | null) => void>();
 
   constructor() {
     try {
       this.worker = new Worker(new URL('./generate.worker.ts', import.meta.url), { type: 'module' });
-      this.worker.onmessage = (event: MessageEvent<CometReply>) => {
+      this.worker.onmessage = (event: MessageEvent<PatchReply>) => {
         const { id, puzzle } = event.data;
         this.waiting.get(id)?.(puzzle);
         this.waiting.delete(id);
@@ -38,25 +37,25 @@ export class CometSource {
     for (const settle of stranded) settle(null);
   }
 
-  requestDaily(seed: number): Promise<CometPuzzle | null> {
+  requestDaily(seed: number): Promise<PatchPuzzle | null> {
     return this.dispatch({ kind: 'daily', seed }, () => generateDaily(seed));
   }
 
-  requestTier(tier: DifficultyName, seed?: number): Promise<CometPuzzle | null> {
+  requestTier(tier: DifficultyName, seed?: number): Promise<PatchPuzzle | null> {
     return this.dispatch({ kind: 'tier', tier, seed }, () => generateDifficulty(tier, seed));
   }
 
   private dispatch(
-    request: Omit<CometRequest, 'id'>,
-    directly: () => CometPuzzle | null
-  ): Promise<CometPuzzle | null> {
+    request: Omit<PatchRequest, 'id'>,
+    directly: () => PatchPuzzle | null
+  ): Promise<PatchPuzzle | null> {
     if (!this.worker) {
       return new Promise(resolve => { setTimeout(() => resolve(directly()), 0); });
     }
     const id = ++this.seq;
     return new Promise(resolve => {
       this.waiting.set(id, resolve);
-      this.worker!.postMessage({ id, ...request } satisfies CometRequest);
+      this.worker!.postMessage({ id, ...request } satisfies PatchRequest);
     });
   }
 

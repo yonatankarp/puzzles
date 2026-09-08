@@ -316,6 +316,8 @@ svg.board.busy { opacity: .3; pointer-events: none; }
 .tag-added { background: color-mix(in srgb, var(--good) 22%, transparent); color: var(--good); }
 .tag-changed { background: color-mix(in srgb, var(--path) 22%, transparent); color: var(--path); }
 .tag-fixed { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--ring); }
+/* Taking something away is its own kind of change, and worth saying plainly. */
+.tag-removed { background: color-mix(in srgb, var(--bad) 20%, transparent); color: var(--bad); }
 
 .hint { color: var(--dim); font-size: 11.5px; text-align: center; line-height: 1.9; }
 kbd {

@@ -3,9 +3,9 @@
  * Checked with the games' own engines, not by eye.
  */
 import { makeEngine } from '../src/games/zip/engine.ts';
-import { solveAll, analyze } from '../src/games/comet/engine.ts';
+import { solveAll, analyze, cellsOf } from '../src/games/patch/engine.ts';
 import { findSolutions } from '../src/games/queens/engine.ts';
-import { ZIP_DIAGRAM, QUEENS_DIAGRAM , COMET_DIAGRAM } from '../src/components/diagrams.ts';
+import { ZIP_DIAGRAM, QUEENS_DIAGRAM, PATCH_DIAGRAM } from '../src/components/diagrams.ts';
 
 let checks = 0;
 let failures = 0;
@@ -74,39 +74,29 @@ const ok = (cond, msg) => { checks++; if (!cond) { failures++; console.log('  FA
      'the Queens diagram shows a placement its own board does not allow');
 }
 
-// --- Comet -------------------------------------------------------------------
+// --- Patch -------------------------------------------------------------------
 {
-  const { n, clues, solution } = COMET_DIAGRAM;
-  ok(clues.length === solution.length, 'the Comet diagram has a comet with no answer');
+  const { n, clues, solution } = PATCH_DIAGRAM;
+  ok(clues.length === solution.length, 'the Patch diagram has a number with no box');
 
-  // Every square exactly once: the whole of rule three.
   const cover = new Map();
-  for (const cells of solution) for (const cell of cells) cover.set(cell, (cover.get(cell) ?? 0) + 1);
-  ok(cover.size === n * n, `the Comet diagram covers ${cover.size} of ${n * n} squares`);
-  ok([...cover.values()].every(v => v === 1), 'a square in the Comet diagram is claimed twice');
-
-  clues.forEach((clue, i) => {
-    const cells = solution[i];
-    ok(cells[0] === clue.cell, `Comet ${i} does not start at its own circle`);
-    ok(cells.length === clue.len, `Comet ${i} is ${cells.length} long but says ${clue.len}`);
-    // Straight, and in one direction only.
-    const rows = new Set(cells.map(c => (c / n) | 0));
-    const cols = new Set(cells.map(c => c % n));
-    ok(rows.size === 1 || cols.size === 1, `Comet ${i} is not a straight line`);
-    const line = [...cells].sort((a, b) => a - b);
-    for (let k = 1; k < line.length; k++) {
-      const step = rows.size === 1 ? 1 : n;
-      ok(line[k] - line[k - 1] === step, `Comet ${i} has a gap in it`);
-    }
-    // A tail may not pass through another circle.
-    const heads = new Set(clues.map(c => c.cell));
-    ok(cells.slice(1).every(c => !heads.has(c)), `Comet ${i} flies through another circle`);
+  solution.forEach((rect, i) => {
+    const cells = cellsOf(n, rect);
+    // Rule 2: the box is the size the number says.
+    ok(cells.length === clues[i].area,
+       `box ${i} of the Patch diagram covers ${cells.length}, its number says ${clues[i].area}`);
+    // Rule 1: one number inside, and it is that number.
+    const inside = cells.filter(c => clues.some(x => x.cell === c));
+    ok(inside.length === 1 && inside[0] === clues[i].cell,
+       `box ${i} of the Patch diagram holds ${inside.length} numbers`);
+    for (const cell of cells) cover.set(cell, (cover.get(cell) ?? 0) + 1);
   });
+  // Rule 3: the whole board, once each.
+  ok(cover.size === n * n, `the Patch diagram covers ${cover.size} of ${n * n} squares`);
+  ok([...cover.values()].every(v => v === 1), 'a square in the Patch diagram is covered twice');
 
-  // And the picture must show *the* answer, not one of several.
-  const solutions = solveAll(n, clues, 3);
-  ok(solutions.length === 1, `the Comet diagram board has ${solutions.length} solutions`);
-  ok(analyze(n, clues).solved, 'the Comet diagram board cannot be reasoned out');
+  ok(solveAll(n, clues, 3).length === 1, 'the Patch diagram board does not have exactly one solution');
+  ok(analyze(n, clues).solved, 'the Patch diagram board cannot be reasoned out');
 }
 
 console.log(failures === 0

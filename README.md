@@ -22,9 +22,9 @@ npm run build          # typecheck, then bundle to dist/
 **Queens** — place one queen in every row, every column and every colour
 region, with no two queens touching, not even diagonally.
 
-**Comet** — every circle is the head of a comet flying one straight way; a
-number is its length, counting the head. Cover every square exactly once.
-Most circles carry no number, and working those out is the game.
+**Patch** — draw a rectangle around every number, covering exactly as many
+squares as the number says, until the whole board is covered. Which shape a
+number takes is the puzzle: a 6 can be 1×6, 2×3, 3×2 or 6×1.
 
 All three have a daily board shared by everyone, four practice sizes, hints,
 streaks, and results you can share.

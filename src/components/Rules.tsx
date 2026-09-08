@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { GameMeta } from '../shell/registry.ts';
-import { COMET_DIAGRAM, QUEENS_DIAGRAM, ZIP_DIAGRAM } from './diagrams.ts';
+import { PATCH_DIAGRAM, QUEENS_DIAGRAM, ZIP_DIAGRAM } from './diagrams.ts';
 
 interface Props {
   game: GameMeta;
@@ -139,36 +139,34 @@ function Diagram({ id }: { id: string }) {
     );
   }
 
-  if (id === 'comet') {
-    const { n, clues, solution } = COMET_DIAGRAM;
+  if (id === 'patch') {
+    const { n, clues, solution } = PATCH_DIAGRAM;
     const size = 120 / n;
-    const cx = (cell: number) => (cell % n) * size + size / 2;
-    const cy = (cell: number) => ((cell / n) | 0) * size + size / 2;
-    const hues = ['hsl(20 70% 58%)', 'hsl(200 70% 58%)', 'hsl(150 60% 50%)', 'hsl(280 60% 62%)'];
+    const hues = ['hsl(20 62% 52%)', 'hsl(200 62% 52%)', 'hsl(150 55% 45%)'];
     return (
       <svg className="diagram" viewBox="-6 -6 132 132" role="img"
-           aria-label="A three by three board covered by four comets: two of three squares, one of two, and one of a single square.">
+           aria-label="A three by three board covered by three boxes: a 3 as a tall strip of three squares, a 4 as a two by two square, and a 2 lying flat.">
         <rect x="0" y="0" width="120" height="120" rx="8"
               fill="var(--board)" stroke="var(--line)" strokeWidth="2" />
-        {solution.map((cells, i) => {
-          const last = cells[cells.length - 1]!;
-          return (
-            <line key={`t${i}`} x1={cx(cells[0]!)} y1={cy(cells[0]!)} x2={cx(last)} y2={cy(last)}
-                  stroke={hues[i % hues.length]} strokeWidth={size * 0.5}
-                  strokeLinecap="round" opacity="0.8" />
-          );
-        })}
-        <g stroke="var(--line)" strokeWidth="1.5" opacity="0.5">
+        {solution.map((rect, i) => (
+          <g key={i}>
+            <rect x={rect.c0 * size + 3} y={rect.r0 * size + 3}
+                  width={rect.w * size - 6} height={rect.h * size - 6} rx="7"
+                  fill={hues[i % hues.length]} opacity="0.24" />
+            <rect x={rect.c0 * size + 3} y={rect.r0 * size + 3}
+                  width={rect.w * size - 6} height={rect.h * size - 6} rx="7"
+                  fill="none" stroke={hues[i % hues.length]} strokeWidth="4" />
+          </g>
+        ))}
+        <g stroke="var(--line)" strokeWidth="1.5" opacity="0.45">
           {[1, 2].map(i => <line key={`v${i}`} x1={i * size} y1="4" x2={i * size} y2="116" />)}
           {[1, 2].map(i => <line key={`h${i}`} x1="4" y1={i * size} x2="116" y2={i * size} />)}
         </g>
         {clues.map(clue => (
-          <g key={clue.cell}>
-            <circle cx={cx(clue.cell)} cy={cy(clue.cell)} r={size * 0.3}
-                    fill="var(--board)" stroke="var(--ink)" strokeWidth="3" />
-            <text x={cx(clue.cell)} y={cy(clue.cell)} textAnchor="middle" dominantBaseline="central"
-                  fontSize="16" fontWeight="700" fill="var(--ink)">{clue.len}</text>
-          </g>
+          <text key={clue.cell}
+                x={(clue.cell % n) * size + size / 2} y={((clue.cell / n) | 0) * size + size / 2}
+                textAnchor="middle" dominantBaseline="central"
+                fontSize="18" fontWeight="700" fill="var(--ink)">{clue.area}</text>
         ))}
       </svg>
     );

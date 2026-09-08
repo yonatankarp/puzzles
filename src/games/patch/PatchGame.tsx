@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { CometCore } from './core.ts';
+import { PatchCore } from './core.ts';
 import Header from '../../components/Header.tsx';
 import Modes from '../../components/Modes.tsx';
 import Tiers from '../../components/Tiers.tsx';
@@ -20,12 +20,12 @@ interface Props {
 }
 
 declare global {
-  interface Window { __comet?: ReturnType<CometCore['testHooks']> }
+  interface Window { __patch?: ReturnType<PatchCore['testHooks']> }
 }
 
-export default function CometGame({ shared, seed, onBack }: Props) {
-  const coreRef = useRef<CometCore | null>(null);
-  coreRef.current ??= new CometCore();
+export default function PatchGame({ shared, seed, onBack }: Props) {
+  const coreRef = useRef<PatchCore | null>(null);
+  coreRef.current ??= new PatchCore();
   const core = coreRef.current;
 
   const boardRef = useRef<SVGSVGElement>(null);
@@ -48,12 +48,12 @@ export default function CometGame({ shared, seed, onBack }: Props) {
      * differs by this flag alone.
      */
     if (import.meta.env.MODE !== 'production' && location.search.includes('test')) {
-      window.__comet = core.testHooks();
+      window.__patch = core.testHooks();
     }
     return () => {
       unsubscribe();
       core.destroy();
-      if (import.meta.env.MODE !== 'production') delete window.__comet;
+      if (import.meta.env.MODE !== 'production') delete window.__patch;
     };
   }, [core]);
 
@@ -76,7 +76,7 @@ export default function CometGame({ shared, seed, onBack }: Props) {
       <svg className="fx" ref={fxRef} aria-hidden="true" />
       <div className="wrap">
         <Header
-          title="Comet"
+          title="Patch"
           onBack={onBack}
           clockRef={clockRef}
           soundMode={shared.soundMode}
@@ -111,10 +111,10 @@ export default function CometGame({ shared, seed, onBack }: Props) {
           </button>
         </div>
         <div className="hint">
-          drag from a circle to fly its comet · tap it for a comet of one
+          drag a box around a number · tap a patch to take it back
           <span className="keys">
-            {' · '}<kbd>space</kbd> next circle · <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> fly ·{' '}
-            <kbd>enter</kbd> one square ·{' '}
+            {' · '}<kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> move ·{' '}
+            <kbd>enter</kbd> corner, then enter again ·{' '}
             <kbd>U</kbd> undo · <kbd>H</kbd> hint · <kbd>R</kbd> restart · <kbd>N</kbd> new
           </span>
         </div>

@@ -37,7 +37,7 @@ for (const release of RELEASES) {
      `${release.version} summary is ${release.summary.length} characters`);
   ok(release.changes.length > 0, `${release.version} lists no changes`);
   for (const change of release.changes) {
-    ok(['added', 'changed', 'fixed'].includes(change.kind),
+    ok(['added', 'changed', 'fixed', 'removed'].includes(change.kind),
        `${release.version} has an entry of kind "${change.kind}"`);
     ok(change.text.length > 10, `${release.version} has a suspiciously short entry`);
     // Player-facing: these should not read like commit messages.

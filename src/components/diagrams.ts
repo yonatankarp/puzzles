@@ -34,18 +34,20 @@ export const QUEENS_DIAGRAM = {
 };
 
 /*
- * A three by three Comet board and its one answer. Every length is shown here,
- * which a real board would not do -- a picture has to be readable at a glance,
- * and a picture of a puzzle you would have to solve teaches nothing.
- * test/diagrams.js proves this is a legal board with exactly one solution.
+ * A three by three Patch board and its one answer: a 3 as a tall strip, a 4 as
+ * a square, a 2 lying flat. test/diagrams.js proves it is a legal board with
+ * exactly one solution, using the game's own engine.
  */
-export const COMET_DIAGRAM = {
+export const PATCH_DIAGRAM = {
   n: 3,
   clues: [
-    { cell: 2, len: 3 },
-    { cell: 5, len: 3 },
-    { cell: 7, len: 2 },
-    { cell: 6, len: 1 }
+    { cell: 6, area: 3 },
+    { cell: 5, area: 4 },
+    { cell: 7, area: 2 }
   ],
-  solution: [[2, 1, 0], [5, 4, 3], [7, 8], [6]] as number[][]
+  solution: [
+    { r0: 0, c0: 0, h: 3, w: 1 },
+    { r0: 0, c0: 1, h: 2, w: 2 },
+    { r0: 2, c0: 1, h: 1, w: 2 }
+  ]
 };
