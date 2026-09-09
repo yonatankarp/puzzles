@@ -28,12 +28,22 @@ jobs:
 
       # A grouped request reports the largest step it contains, so a group that
       # smuggled in a major would be caught here rather than merged as a minor.
+      # AUTOMERGE_TOKEN if it exists, GITHUB_TOKEN if it does not.
+      #
+      # GitHub does not start a workflow run from anything GITHUB_TOKEN did, and
+      # the merge is attributed to whoever queued it. Queued with the built-in
+      # token, the push to main that lands the bump therefore starts no run --
+      # so "Test and deploy" never fires and the published site keeps serving
+      # the previous build until somebody pushes by hand. A fine-grained token
+      # in AUTOMERGE_TOKEN (contents + pull-requests write) makes the merge that
+      # identity's and the deploy follows normally. Without it everything still
+      # works; the site just waits for the next push.
       - name: Queue the merge behind the suite
         if: steps.meta.outputs.update-type != 'version-update:semver-major'
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.AUTOMERGE_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Say why a major was left alone
         if: steps.meta.outputs.update-type == 'version-update:semver-major'

@@ -46,8 +46,6 @@ export class Fx {
     this.layer.replaceChildren();
   }
 
-  get pieceCount(): number { return this.layer.childElementCount; }
-
   /**
    * `origin` is where the line finished; the later waves come from the lower
    * corners of the board so it lands as a cascade rather than one puff.

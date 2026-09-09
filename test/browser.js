@@ -44,14 +44,29 @@ export async function launch({ autoplay = 'relaxed' } = {}) {
   // behind, inheriting its console history.
   const portFile = path.join(profile, 'DevToolsActivePort');
   let port = null;
-  for (let i = 0; i < 150 && port === null; i++) {
+  /*
+   * Wait on Chrome being alive, not on a stopwatch. The old bound was a flat
+   * fifteen seconds, which is generous on this machine and not always enough on
+   * a cold CI runner -- so the suite went red with "never reported a debugging
+   * port" on a browser that was merely slow to start, and a false red on the
+   * check that gates a merge is worse than a slow one. It also sat out the full
+   * count when Chrome had already exited, which is the one case worth failing
+   * fast on: if the process is gone, no port is coming.
+   */
+  for (let i = 0; i < 600 && port === null; i++) {
     await sleep(100);
     try {
       const line = fs.readFileSync(portFile, 'utf8').split('\n')[0];
       if (line) port = parseInt(line, 10);
     } catch { /* not written yet */ }
+    if (port === null && proc.exitCode !== null) break;
   }
-  if (!port) { proc.kill(); throw new Error('Chrome never reported a debugging port'); }
+  if (!port) {
+    proc.kill();
+    throw new Error(proc.exitCode !== null
+      ? `Chrome exited with code ${proc.exitCode} before reporting a debugging port`
+      : 'Chrome never reported a debugging port');
+  }
 
   let target = null;
   for (let i = 0; i < 100 && !target; i++) {

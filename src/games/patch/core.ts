@@ -50,6 +50,8 @@ export class PatchCore extends ShellCore<PatchPuzzle> {
     return this.source.requestTier(tier as DifficultyName, seed);
   }
   protected fingerprint(puzzle: PatchPuzzle) { return fingerprint(puzzle); }
+  /* The generator worker outlives nothing: it goes when the view does. */
+  protected releaseResources(): void { this.source.terminate(); }
 
   protected resetState(puzzle: PatchPuzzle): void {
     this.drawn = new Map();
@@ -215,6 +217,14 @@ export class PatchCore extends ShellCore<PatchPuzzle> {
   }
 
   private remove(cell: number): void {
+    /*
+     * The same guard every other way of touching the board carries, and this
+     * was the one path without it. Tapping a patch on a finished board took it
+     * back: a backtrack was counted, the meter dropped below full, and since
+     * `solved` stayed true checkWin returned early forever -- a solved board
+     * with a hole in it and no way back but a new puzzle.
+     */
+    if (this.phase !== 'playing' || this.solved || this.revealed) return;
     if (!this.drawn.has(cell)) return;
     this.drawn.delete(cell);
     this.order = this.order.filter(o => o !== cell);

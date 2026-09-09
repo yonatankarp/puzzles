@@ -30,7 +30,7 @@ number takes is the puzzle: a 6 can be 1×6, 2×3, 3×2 or 6×1.
 wall, another lamp, or the edge. Turn them so every dark square is lit, and
 none lit twice.
 
-All three have a daily board shared by everyone, four practice sizes, hints,
+All four have a daily board shared by everyone, four practice sizes, hints,
 streaks, and results you can share.
 
 ## Generation
@@ -72,6 +72,8 @@ src/shell/       routing, registry, daily/streaks/history/share, prefs, audio, f
   core.ts        ShellCore: timing, the reveal gate, saved runs, snapshots
 src/games/zip/   engine, board renderer, rules
 src/games/queens/
+src/games/patch/
+src/games/lamplight/
 src/components/  React chrome, shared by every game
 ```
 

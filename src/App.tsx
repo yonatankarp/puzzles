@@ -13,12 +13,24 @@ import { gameHref, helpHref, indexHref, parseRoute, rememberGame } from './shell
 import { applyTheme, read as readPref, write as writePref, type Theme } from './shell/prefs.ts';
 import { SOUND_MODES, type SoundMode } from './shell/audio.ts';
 
+/* The themes there actually are, so a stored setting can be checked against
+ * something rather than trusted. */
+const THEMES: Theme[] = ['system', 'light', 'dark'];
+
 export default function App() {
   const [route, setRoute] = useState(() => parseRoute());
   const [seenVersion, setSeenVersion] = useState(() => readPref('app.seenVersion'));
 
   // App-wide preferences live here so the index has them too, not only a game.
-  const [theme, setTheme] = useState<Theme>(() => (readPref('app.theme') as Theme) ?? 'system');
+  /* Checked, the way the sound mode below it is. The cast alone said "this is
+   * a Theme" about whatever string was in storage, and anything unexpected --
+   * an older build's value, an edited entry -- went straight into data-theme,
+   * where it matches neither palette and the page comes up in whichever half
+   * of the stylesheet wins. */
+  const [theme, setTheme] = useState<Theme>(() => {
+    const stored = readPref('app.theme');
+    return THEMES.includes(stored as Theme) ? stored as Theme : 'system';
+  });
   const [sound, setSound] = useState<SoundMode>(() => {
     const stored = readPref('app.sound');
     return stored === 'on' ? 'all' : SOUND_MODES.includes(stored as SoundMode) ? stored as SoundMode : 'off';

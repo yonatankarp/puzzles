@@ -73,11 +73,21 @@ export class QueensCore extends ShellCore<QueensPuzzle> {
   protected requestDaily(seed: number) { return this.source.requestDaily(seed); }
   protected requestTier(tier: string, seed: number) { return this.source.requestTier(tier as DifficultyName, seed); }
   protected fingerprint(puzzle: QueensPuzzle) { return fingerprint(puzzle); }
+  /* The generator worker outlives nothing: it goes when the view does. */
+  protected releaseResources(): void { this.source.terminate(); }
 
   protected resetState(puzzle: QueensPuzzle): void {
     this.marks = new Array<Mark>(puzzle.n * puzzle.n).fill('empty');
     this.conflicts = new Set();
     this.autoCrossed = new Set();
+    /* The placement list is state too, and it was the one thing a new board did
+     * not clear: pressing N and then undo took back a queen from the board
+     * before, counted the backtrack, and wrote that number into the daily
+     * result and the share text. A drag left half-finished by a new board is
+     * cleared here for the same reason. */
+    this.order = [];
+    this.painting = false;
+    this.lastPainted = -1;
     this.cursor = -1;
   }
 
@@ -125,10 +135,29 @@ export class QueensCore extends ShellCore<QueensPuzzle> {
     };
   }
 
+  /*
+   * The queens first, in the order they were placed, and the crosses after
+   * them. Walking `marks` alone wrote them out in cell order, which is not an
+   * order anybody played: a daily picked back up after a reload undid its
+   * queens top-left first and replayed the celebration as a run that never
+   * happened -- the one thing `order` exists to remember. Each move is still
+   * `cell * 3 + code`, so a run saved by an older version decodes unchanged.
+   */
   protected encodeMoves(): number[] {
     const moves: number[] = [];
+    const written = new Set<number>();
+    for (const cell of this.order) {
+      // The board is the truth about what is standing on it; `order` may still
+      // name a square whose queen has since come off.
+      if (this.marks[cell] !== 'queen' || written.has(cell)) continue;
+      written.add(cell);
+      moves.push(cell * 3 + CODE.queen);
+    }
     this.marks.forEach((mark, cell) => {
-      if (mark !== 'empty') moves.push(cell * 3 + CODE[mark]);
+      // Crosses, and any queen `order` never heard about -- dropping one to
+      // tidiness would lose a placement the player made.
+      if (mark === 'empty' || written.has(cell)) return;
+      moves.push(cell * 3 + CODE[mark]);
     });
     return moves;
   }
@@ -301,6 +330,10 @@ export class QueensCore extends ShellCore<QueensPuzzle> {
     });
     if (wrong.length) {
       for (const cell of wrong) this.marks[cell] = 'empty';
+      /* Off the board means off the list. Clearing only the marks left those
+       * queens in the placement order, so undo took back a queen that was not
+       * there and the celebration replayed one. */
+      this.order = this.order.filter(c => !wrong.includes(c));
       this.setBanner({ text: 'Off track — those queens cannot be right', kind: 'bad' }, 1500);
     }
     const row = solution.findIndex((col, r) => this.marks[r * n + col] !== 'queen');

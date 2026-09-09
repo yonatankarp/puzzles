@@ -274,9 +274,18 @@ for (const tier of TIERS) {
     ok(after.progress === '100%', `${tier}/${name}: progress bar at ${after.progress}`);
     ok(page.consoleErrors.length === 0, `${tier}/${name}: ${page.consoleErrors.join(' | ')}`);
 
-    // Undo, restart and reveal must each do exactly their one thing.
+    /*
+     * Undo, restart and reveal must each do exactly their one thing -- and on a
+     * finished board, undo's one thing is nothing. It used to take a cell back
+     * off a solved Zip and set `solved` false with it, which no other game in
+     * the collection allows and which had a sharp edge on it: with auto-next
+     * on, un-solving the board left the advance timer running, so the board you
+     * had just stepped back into was replaced under you a moment later.
+     */
     await click(page, 'undoBtn');
-    ok(await filled(page) === total - 1, `${tier}/${name}: undo did not retract one cell`);
+    ok(await filled(page) === total, `${tier}/${name}: undo took a cell off a solved board`);
+    ok(/show/.test(await page.eval("return document.getElementById('banner').className")),
+       `${tier}/${name}: undo un-solved a finished board`);
     await click(page, 'restartBtn');
     ok(await filled(page) === 0, `${tier}/${name}: restart did not clear the board`);
     await click(page, 'revealBtn');
@@ -305,8 +314,9 @@ section('keyboard play');
   ok(await filled(page) === total, `keyboard play filled ${await filled(page)} of ${total}`);
   ok(/show/.test(await page.eval("return document.getElementById('banner').className")),
      'keyboard solve did not win');
+  // Same by key as by button: a finished board does not come apart.
   await page.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', key: 'u', code: 'KeyU', windowsVirtualKeyCode: 85 });
-  ok(await filled(page) === total - 1, 'U did not undo');
+  ok(await filled(page) === total, 'U took a cell off a solved board');
   await page.close();
 }
 

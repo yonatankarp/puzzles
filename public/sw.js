@@ -6,11 +6,24 @@
  * network first so a deploy is picked up promptly, and hashed assets are
  * cache-first because their names change whenever their contents do.
  */
-const CACHE = 'puzzles-v1';
+/*
+ * Stamped by the build. It used to be the fixed string 'puzzles-v1', which
+ * quietly turned the cleanup below into dead code: the filter drops caches that
+ * are ours AND not the current one, and with a name that never changed there
+ * was never such a cache. Every deploy wrote a fresh set of content-hashed
+ * assets into the same bucket under new keys and nothing ever took the old ones
+ * out, so a browser's store of this app grew with every release until the
+ * origin was evicted wholesale. A name that moves with the release is what
+ * makes the sweep mean something.
+ */
+const CACHE = 'puzzles-__BUILD__';
 
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE).then(cache => cache.addAll(['./', './index.html'])).then(() => self.skipWaiting())
+    // Only './index.html': that is the key the navigation handler puts to and
+    // matches on, and the './' copy beside it was written once at install,
+    // never read, and never refreshed.
+    caches.open(CACHE).then(cache => cache.addAll(['./index.html'])).then(() => self.skipWaiting())
   );
 });
 
@@ -47,9 +60,18 @@ self.addEventListener('fetch', event => {
    * so revalidating it on every navigation costs almost nothing.
    */
   if (request.mode === 'navigate') {
+    /*
+     * A refusal is not only a dropped connection. Without the status check only
+     * a network-level failure reached the catch, so while the host was up and
+     * erroring -- a Pages incident, a 500, a 404 on the shell -- the error page
+     * was passed straight through and the cached shell sat there unused, which
+     * is the one situation this whole file exists for. The asset branch below
+     * has always checked; this is the same check, on the more important half.
+     */
     event.respondWith(
       fetch(request.url, { cache: 'no-cache' })
         .then(response => {
+          if (!response.ok) throw new Error(`shell responded ${response.status}`);
           const copy = response.clone();
           caches.open(CACHE).then(cache => cache.put('./index.html', copy));
           return response;

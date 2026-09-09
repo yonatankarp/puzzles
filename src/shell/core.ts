@@ -103,6 +103,14 @@ export abstract class ShellCore<P> {
   protected onFrame(_now: number): void { /* per-frame board work, if any */ }
   protected onKeyExtra(_e: KeyboardEvent): boolean { return false; }
   protected clearBoardExtras(): void { /* hints, overlays */ }
+  /*
+   * Let go of whatever the game holds outside the DOM. Every game generates in
+   * a worker, and nothing ever shut one down: index -> game -> index -> game
+   * left a worker running per visit, each holding the module graph it was
+   * started with. destroy() unhooks the listeners, so this is where the rest of
+   * the teardown belongs.
+   */
+  protected releaseResources(): void { /* a game with nothing to let go of says nothing */ }
   /** Board flourishes a game runs on a win, before the confetti. */
   protected onSolvedEffects(): void { /* sweeps, pops */ }
 
@@ -122,6 +130,14 @@ export abstract class ShellCore<P> {
   private timerStarted = false;
   protected solved = false;
   protected revealed = false;
+  /*
+   * Whether this board was ever given away. `revealed` cannot answer that,
+   * because Restart deliberately takes it back off -- it is what uncovers the
+   * board again -- and that left the whole door open: Reveal, Restart, play
+   * back the solution you were just shown, and the daily was recorded with a
+   * streak. This one only ever clears when a new board arrives.
+   */
+  protected gaveUp = false;
   protected hintsUsed = 0;
   protected backtracks = 0;
   protected phase: Phase = 'ready';
@@ -201,6 +217,7 @@ export abstract class ShellCore<P> {
     for (const off of this.detachers) off();
     this.detachers = [];
     this.listeners.clear();
+    this.releaseResources();
   }
 
   bindClock(el: HTMLElement | null): void { this.clockEl = el; }
@@ -379,7 +396,34 @@ export abstract class ShellCore<P> {
     this.solved = true;
     this.stopClock();
     this.redraw();
+    // A board still wearing its answer has not been finished by anybody.
     if (this.revealed) return;
+
+    /*
+     * A board given away and then cleared and solved by hand is a real solve
+     * and not a result: the time is honest, but the board was seen first, so
+     * it sets no record and the daily does not count it -- and Restart, which
+     * takes the cover back off, does not undo the giving away.
+     *
+     * It still finishes, though. Swallowing the win outright was the first
+     * shape of this and it was wrong in the other direction: no banner, no
+     * flourish, no tally, nothing at all to say the board was done, which reads
+     * as the game breaking rather than as a rule being applied. It says what
+     * happened instead.
+     */
+    if (this.gaveUp) {
+      this.setBanner({
+        text: `Solved · ${formatDuration(this.elapsed)}`,
+        kind: 'wait',
+        sub: this.mode === 'daily'
+          ? 'the answer was shown first, so today is not recorded'
+          : 'the answer was shown first, so this is not a record'
+      });
+      this.audio.win(false);
+      if (!reducedMotion()) this.onSolvedEffects();
+      this.celebrate(false);
+      return;
+    }
 
     this.session.solved++;
     this.session.total += this.elapsed;
@@ -455,6 +499,7 @@ export abstract class ShellCore<P> {
     this.timerStarted = false;
     this.solved = false;
     this.revealed = false;
+    this.gaveUp = false;                       // a new board is nobody's give-up yet
     this.hintsUsed = 0;
     this.backtracks = 0;
     clearTimeout(this.countdownTimer);
@@ -594,7 +639,11 @@ export abstract class ShellCore<P> {
 
   /** Cheap enough to call every frame; throttled so storage is not hammered. */
   private saveProgress(force = false): void {
-    if (this.mode !== 'daily' || !this.puzzle || this.solved || this.revealed) return;
+    // gaveUp as well as revealed: after Reveal then Restart the board is
+    // uncovered again with revealed back to false, and without this the replay
+    // of a solution that had just been shown was saved and restored as if it
+    // were an honest run.
+    if (this.mode !== 'daily' || !this.puzzle || this.solved || this.revealed || this.gaveUp) return;
     const now = performance.now();
     if (!force && now - this.savedAt < 1000) return;
     this.savedAt = now;
@@ -652,7 +701,13 @@ export abstract class ShellCore<P> {
     this.markDirty();
   }
 
-  undo(): void { if (this.notPlaying()) return; this.onUndo(); }
+  /*
+   * The auto-next timer goes, the way it does for restart, hint and reveal.
+   * Undo was the one board action that left it running, so pressing U in the
+   * second and a bit after a solve took the last move back and then had the
+   * board swapped out from under you anyway.
+   */
+  undo(): void { if (this.notPlaying()) return; clearTimeout(this.advanceTimer); this.onUndo(); }
   hint(): void { if (this.notPlaying()) return; clearTimeout(this.advanceTimer); this.onHint(); }
 
   reveal(): void {
@@ -660,6 +715,15 @@ export abstract class ShellCore<P> {
     clearTimeout(this.advanceTimer);
     this.stopClock();
     this.revealed = true;
+    this.gaveUp = true;
+    /*
+     * And the saved run goes with it. saveProgress refuses to write once the
+     * board is revealed, which meant the run as it stood a moment before the
+     * reveal was still sitting in storage: reload, and it came back as an
+     * ordinary run in progress with nothing remembering the answer had been
+     * shown.
+     */
+    clearProgress(this.gameId);
     this.solved = false;
     this.session.streak = 0;
     this.onReveal();
@@ -802,13 +866,27 @@ export abstract class ShellCore<P> {
   private onKey(e: KeyboardEvent): void {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     this.audio.markInteracted();
+    /*
+     * The guard comes first, before any key is claimed. Starting on space sat
+     * above it, and this is a listener on the document: it fired wherever you
+     * were typing. The rules sheet that opens itself could not be dismissed
+     * with enter on its own close button, the daily's clock started behind
+     * that sheet, and enter in the "play a code" box started a board instead
+     * of submitting the form. Nothing focused still means document.body, so
+     * bare space starts as it always did, and the Start button starts itself
+     * through its own onClick.
+     *
+     * It has to sit above onKeyExtra as well as below the guard: Queens claims
+     * space for its own cycle and hands it back as consumed, which would
+     * swallow the start it is standing in front of.
+     */
+    if (!this.ownsKeyboard()) return;
     if (this.phase === 'ready' && (e.key === ' ' || e.key === 'Enter')) {
       e.preventDefault();
       this.start();
       return;
     }
     if (this.onKeyExtra(e)) return;
-    if (!this.ownsKeyboard()) return;
     const key = e.key.toLowerCase();
     if (key === 'u' || e.key === 'Backspace') { e.preventDefault(); this.undo(); }
     else if (key === 'h') this.hint();

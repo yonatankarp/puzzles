@@ -73,6 +73,18 @@ export default function Changelog({ onClose }: Props) {
             </section>
           ))}
         </div>
+
+        {/*
+          * The same dismissal the rules sheet grew, for the same reason and
+          * more so: this is the longer of the two sheets, so the corner X is
+          * the furthest from a thumb exactly when you have read to the bottom.
+          * Outside the scrolling body, so it never has to be read down to.
+          */}
+        <footer className="sheet-foot">
+          <button className="btn primary sheet-dismiss" id="changelogGotIt" onClick={onClose}>
+            Done
+          </button>
+        </footer>
       </div>
     </div>
   );

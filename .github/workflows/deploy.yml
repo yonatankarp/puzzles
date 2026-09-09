@@ -10,10 +10,12 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Read-only by default, so the job that runs a pull request's code -- which on
+# this repo means whatever Dependabot proposes -- cannot publish to Pages or
+# mint an OIDC token. Only the deploy job below is trusted with those, and only
+# on main.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 # Let a running deploy finish rather than cancelling it half-published. Pull
 # requests get a group of their own, so a superseded one can be cancelled
@@ -42,6 +44,10 @@ jobs:
     # A pull request is tested, not published.
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

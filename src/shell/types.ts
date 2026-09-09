@@ -60,17 +60,3 @@ export interface Snapshot {
   soundMode: string;
   theme: string;
 }
-
-/** What a game view hands to the shared chrome. */
-export interface GameActions {
-  start(): void;
-  newPuzzle(): void;
-  restart(): void;
-  undo(): void;
-  hint(): void;
-  reveal(): void;
-  setDifficulty(id: string): void;
-  setMode(mode: Mode): void;
-  toggleAutoNext(): void;
-  share(): Promise<ShareOutcome>;
-}

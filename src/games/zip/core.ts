@@ -47,6 +47,8 @@ export class GameCore extends ShellCore<Puzzle> {
   protected requestDaily(seed: number) { return this.source.requestDaily(seed); }
   protected requestTier(tier: string, seed: number) { return this.source.requestTier(tier as DifficultyName, seed); }
   protected fingerprint(puzzle: Puzzle) { return fingerprint(puzzle); }
+  /* The generator worker outlives nothing: it goes when the view does. */
+  protected releaseResources(): void { this.source.terminate(); }
 
   protected resetState(puzzle: Puzzle): void {
     this.engine = makeEngine(puzzle);
@@ -335,6 +337,13 @@ export class GameCore extends ShellCore<Puzzle> {
   }
 
   private pop(): void {
+    /*
+     * A finished board cannot be unfinished. Queens, Patch and Lamplight all
+     * refuse an undo once they are solved and Zip was the odd one out: undo
+     * after the win took a square back off the route, wrote `solved = false`,
+     * and left a board that had already been recorded looking unsolved.
+     */
+    if (this.phase !== 'playing' || this.solved) return;
     if (this.path.length <= 1) return;
     const removed = this.path.pop()!;
     this.inPath[removed] = 0;

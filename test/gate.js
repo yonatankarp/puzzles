@@ -308,6 +308,61 @@ section('a day already solved is not offered a Start that leads nowhere');
   await page.close();
 }
 
+// --- a board given away does not count, however honestly it is finished ------
+section('a board given away does not count, however honestly it is finished');
+/*
+ * Restart clearing `revealed` used to be the whole story, and it left the door
+ * this suite exists to shut standing open: reveal the daily, clear it, copy the
+ * answer you were just shown back in, and the result and the streak were
+ * written as though you had solved it. The time would have been real, the
+ * streak would have been real, and nothing anywhere would have recorded that
+ * the board had been seen first.
+ *
+ * Both halves are checked here, because the first fix broke the second. It
+ * writes nothing -- and it still finishes: a solve that produced no banner, no
+ * flourish and no tally reads as the game being broken rather than as a rule
+ * being applied, which is its own kind of lie.
+ */
+{
+  const page = await openGate('zip');
+  const key = "'zip.daily.' + window.__zip.day";
+  ok(await page.eval(`return localStorage.getItem(${key})`) === null,
+     'the day was already in the books, so nothing below would prove anything');
+
+  await click(page, 'startBtn');
+  ok(await waitForPlaying(page), 'the board never came out from behind the gate');
+
+  await click(page, 'revealBtn');
+  await settle(page);
+  await click(page, 'revealBtn');                 // daily asks before it obeys
+  await settle(page);
+  ok(await page.eval('return window.__zip.core.revealed === true'), 'the board was not given away');
+
+  await click(page, 'restartBtn');
+  await settle(page);
+  await page.eval(`
+    const z = window.__zip;
+    for (const cell of z.state.puzzle.solution) z.step(cell);
+    return 1;`);
+  await settle(page);
+  await sleep(200);
+
+  ok(await page.eval('return window.__zip.state.solved === true'),
+     'the board did not finish when the solution was put back in');
+  // The sub-line is a <small> inside #bannerText, so one read has both halves.
+  const said = await text(page, 'bannerText') ?? '';
+  ok(/Solved/.test(said), `a given-away board finished silently: "${said}"`);
+  ok(/shown first/.test(said),
+     `the banner does not say why the board will not count: "${said}"`);
+  ok(await page.eval(`return localStorage.getItem(${key})`) === null,
+     'a daily that had been revealed was recorded anyway');
+  ok(await page.eval('return window.__zip.core.session.solved === 0'),
+     'a given-away board counted towards the session tally');
+
+  ok(page.consoleErrors.length === 0, `console: ${page.consoleErrors.join(' | ')}`);
+  await page.close();
+}
+
 // --- practice keeps its own best ---------------------------------------------
 section('practice keeps its own best');
 {

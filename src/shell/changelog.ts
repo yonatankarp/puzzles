@@ -25,6 +25,19 @@ export interface Release {
 /** Newest first. */
 export const RELEASES: Release[] = [
   {
+    version: '2.11.0',
+    date: '2026-09-09',
+    summary: 'Four games that look like four games, and a phone on its side that works.',
+    changes: [
+      { kind: 'fixed', text: 'A phone held sideways was showing you a mess. The chrome beside the board is laid out in rows, and the rule that placed the second row of it actually matched every row after the first — so on Queens three of them were printed on top of each other, and the history strip landed in the same place again. Every game and both modes now get a row each, on every size of phone, with nothing overlapping and nothing scrolling.' },
+      { kind: 'fixed', text: 'The header was being crushed in that layout too. It sits in a column rather than across the screen, but the rules that let it cope with a narrow space were watching the width of the whole window — which is never narrow on a phone held sideways. The back, help, sound and theme buttons were being squeezed to half their size, taking their touch targets with them, and on a smaller phone the clock was pushed off the edge of the screen.' },
+      { kind: 'changed', text: 'Three of the four games were wearing the same orange. Patch and Lamplight were each added by copying the game above them, colour included, and nothing said otherwise — every card looks right on its own. Patch is green now and Lamplight violet, and the difference between any two is measured rather than eyeballed.' },
+      { kind: 'added', text: 'Each game on the front page now shows a small solved board of itself, which is the same picture the how-to-play sheet draws. Four puzzles described only in words read as four paragraphs; the one you want is the one you recognise.' },
+      { kind: 'fixed', text: 'A daily you gave up on, cleared, and then solved by hand was being recorded as though you had solved it — the time was real, the streak was real, and nothing said the answer had been shown first. It still finishes and still says so; it just does not count.' },
+      { kind: 'fixed', text: 'A handful of smaller ones. A new Queens board no longer inherits the last one\u2019s tally, so Undo cannot count a queen that is not there. Picking a daily back up now takes your queens back in the order you placed them. Tapping a finished Patch board no longer quietly takes it apart. Undo on a finished board does nothing, in every game rather than three of the four. And the long changelog you are reading has a button at the bottom to close it, where a thumb is.' }
+    ]
+  },
+  {
     version: '2.10.0',
     date: '2026-09-09',
     summary: 'Queens can cross off for you.',

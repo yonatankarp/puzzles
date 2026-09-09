@@ -36,9 +36,24 @@ updates:
       day: monday
       time: "06:00"
       timezone: Europe/Berlin
-    open-pull-requests-limit: 5
+    # Ten rather than five. Majors are ungrouped by design, so they arrive one
+    # per request and sit until they are read -- and five of them was already
+    # the whole allowance, which meant actions/setup-node had no request at all
+    # and the Node 20 warning this file was meant to clear would have survived
+    # merging every one of them.
+    open-pull-requests-limit: 10
     groups:
       actions:
+        # The three actions that publish the site are held out of the group on
+        # purpose, so they are never merged automatically. A pull request runs
+        # the suite but deliberately does not deploy, so the check that clears a
+        # merge is the one check that never exercises them: a bump that broke
+        # publishing would go green, merge itself, and first be seen as a failed
+        # deploy on main. Held back, they arrive on their own and get read.
+        exclude-patterns:
+          - actions/configure-pages
+          - actions/upload-pages-artifact
+          - actions/deploy-pages
         update-types:
           - minor
           - patch

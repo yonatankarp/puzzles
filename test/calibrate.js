@@ -3,7 +3,7 @@
  * the "decision point" distribution actually is, so the bands are set from data
  * rather than guessed. Not part of the suite -- run it when tier shapes change.
  */
-import { generate, makeEngine, mulberry32 } from '../src/engine/zip.ts';
+import { generate, makeEngine, mulberry32 } from '../src/games/zip/engine.ts';
 
 const SHAPES = [
   { name: 'easy   5x5', rows: 5, cols: 5, numbers: [5, 6] },

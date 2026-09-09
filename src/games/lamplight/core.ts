@@ -58,6 +58,8 @@ export class LampCore extends ShellCore<LampPuzzle> {
     return this.source.requestTier(tier as DifficultyName, seed);
   }
   protected fingerprint(puzzle: LampPuzzle) { return fingerprint(puzzle); }
+  /* The generator worker outlives nothing: it goes when the view does. */
+  protected releaseResources(): void { this.source.terminate(); }
 
   protected resetState(puzzle: LampPuzzle): void {
     // The room starts dark: every lamp out, and you may start anywhere.

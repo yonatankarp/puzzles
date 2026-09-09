@@ -246,6 +246,18 @@ svg.board.busy { opacity: .3; pointer-events: none; }
   background: var(--track); margin-right: 6px; vertical-align: 1px;
 }
 .chip[aria-pressed="true"] .dot { background: var(--good); }
+/*
+ * The same invisible reach the header icons get, for the same reason. The
+ * visible pills stay small because the rows they sit in are tight, but the
+ * things they do -- share this board, type in one you were sent, turn
+ * auto-mark on -- are not small, and 26px is a long way under the 44px this
+ * file argues for above. Horizontal slop stays under half the 8px gap between
+ * them, so neighbouring targets touch rather than overlap.
+ */
+.chip, .version { position: relative; }
+.chip::after, .version::after {
+  content: ''; position: absolute; inset: -9px -3px;
+}
 .history { display: flex; flex-direction: column; gap: 7px; }
 .history-days { display: flex; gap: 3px; }
 .history-days i {
@@ -508,13 +520,28 @@ kbd {
     grid-template-columns: auto minmax(0, 460px);
     justify-content: center;
     column-gap: 18px;
-    row-gap: 6px;
-    /* Row 4 is the slack. The board spans rows 1-8 and is taller than they
-       need, and without a flexible track that surplus is shared out evenly and
-       drifts every row apart. Pinning it to one track keeps the header group
-       at the top and drops the controls, status and hint to the bottom -- which
-       in landscape is where a thumb already is. */
-    grid-template-rows: auto auto auto 1fr auto auto auto auto auto;
+    /* Four rather than six: the chrome column has more rows in it than this
+       layout was written for, and the gaps between them are the cheapest
+       eighteen pixels to give back. */
+    row-gap: 4px;
+    /*
+     * Row 4 is the slack. The board spans the whole column and is taller than
+     * the chrome beside it needs, and without one flexible track that surplus
+     * is shared out evenly and drifts every row apart. Pinning it to one track
+     * keeps the header group at the top and drops the controls and everything
+     * under them to the bottom -- which in landscape is where a thumb is.
+     *
+     * Everything below the controls auto-flows into the tracks after it rather
+     * than being pinned by number. It was pinned before, and the numbers were
+     * a count of rows that has since changed: the pin for the second status row
+     * was written as `.status + .status`, which is every status row after the
+     * first, not the second. Queens practice has four of them -- auto-mark, the
+     * counts, the board code, auto-next -- so three landed in one cell and
+     * printed over each other, and the daily's history strip was pinned to the
+     * same cell again. There are enough tracks here for the longest column any
+     * game has; a spare one costs a gap and nothing else.
+     */
+    grid-template-rows: auto auto auto 1fr repeat(7, auto);
   }
   /* Anything not placed below would auto-flow into column 1 and land on top of
      the board; this is the floor under that. Every rule that follows repeats
@@ -523,7 +550,9 @@ kbd {
   .wrap:has(.boardwrap) > * { grid-column: 2; }
 
   .wrap:has(.boardwrap) > .boardwrap {
-    grid-column: 1; grid-row: 1 / 9; justify-self: center; align-self: start;
+    /* To the last line but one, so it keeps spanning the column however many
+       rows the chrome turns out to need. */
+    grid-column: 1; grid-row: 1 / -2; justify-self: center; align-self: start;
     /* The one number that matters: the board can be no taller than the
        viewport less the page padding, the progress bar, and the row it shares
        with the version button. Every board here is square, so bounding the
@@ -533,29 +562,66 @@ kbd {
       calc(100dvh - 52px - env(safe-area-inset-top) - env(safe-area-inset-bottom))
     );
   }
-  .wrap:has(.boardwrap) > .progress { grid-column: 1; grid-row: 9; align-self: start; }
+  .wrap:has(.boardwrap) > .progress { grid-column: 1; grid-row: -2 / -1; align-self: start; }
   .wrap:has(.boardwrap) > header { grid-row: 1; }
   .wrap:has(.boardwrap) > .modes { grid-row: 2; }
   .wrap:has(.boardwrap) > .tiers,
   .wrap:has(.boardwrap) > .daily { grid-row: 3; }
   .wrap:has(.boardwrap) > .controls { grid-row: 5; }
-  .wrap:has(.boardwrap) > .status { grid-row: 6; }
-  /* Practice adds a second status row -- auto-next and the session summary --
-     and daily adds the history strip instead. The two never appear together,
-     so they share row 7 rather than each holding a row the other leaves empty. */
-  .wrap:has(.boardwrap) > .status + .status { grid-row: 7; }
-  .wrap:has(.boardwrap) > .history { grid-row: 7; }
-  .wrap:has(.boardwrap) > .hint { grid-row: 8; }
-  .wrap:has(.boardwrap) > .footer { grid-row: 9; }
+  /* The status rows, the history strip, the hint line and the footer are not
+     pinned: they take the tracks after the controls in the order they are
+     written, however many of them a game has. */
 
   svg.board {
     max-height: calc(100dvh - 52px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   }
 
+  /*
+   * The header is in a 460px column at most, and on a smaller phone in a much
+   * narrower one -- 332px at 667 across, 276px at 568. The rules that let it
+   * survive a narrow box were written under `max-width: 380px`, which is a
+   * measure of the viewport, and every landscape phone is far wider than that.
+   * So the header was never told it was cramped and its flex children simply
+   * shrank: 34px icon buttons squeezed to 17, their reasoned 44px touch target
+   * with them, and the clock pushed off the side of a page that is not supposed
+   * to scroll at all. The box it has to fit is this column, so the rule belongs
+   * here rather than at a width.
+   */
+  .wrap:has(.boardwrap) > header { gap: 6px; }
+  .wrap:has(.boardwrap) > header .brand { min-width: 0; font-size: 15px; }
+  .wrap:has(.boardwrap) > header .brand svg { flex: none; }
+  .wrap:has(.boardwrap) > header .brand-title {
+    min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .wrap:has(.boardwrap) > header .icon-btn { flex: none; }
+  .wrap:has(.boardwrap) > header .clock { flex: none; font-size: 22px; }
+
   /* Tighter chrome, so the slack row stays real rather than being eaten. */
-  .btn { padding: 10px 2px; }
+  .btn { padding: 8px 2px; }
   .daily { min-height: 38px; padding: 6px 10px 6px 12px; }
   .hint { line-height: 1.5; }
+
+  /*
+   * The shortest landscape there is -- a 320pt phone on its side, which is an
+   * iPhone 5 or the first SE. Below this height the chrome genuinely does not
+   * fit beside the board, so the least useful line goes: the hint is guidance
+   * rather than state, it is already down to one short sentence on a touch
+   * screen, and every word of it is in "how to play" a tap away. Losing it is
+   * what keeps the controls and the board on screen together, which is the
+   * whole point of this layout.
+   */
+  @media (max-height: 360px) {
+    .wrap:has(.boardwrap) { row-gap: 2px; }
+    .wrap:has(.boardwrap) > .hint { display: none; }
+    .wrap:has(.boardwrap) > .footer { margin-top: 0; }
+    .btn { padding: 7px 2px; font-size: 12px; }
+    .chip { padding: 4px 10px; }
+    .status { font-size: 11.5px; }
+    /* Queens carries the most rows of any game here -- auto-mark, the counts,
+       the board code and auto-next -- and the sentence beside each chip is the
+       part that is explaining rather than doing. */
+    #autoMarkNote, #session { display: none; }
+  }
 
   /* A bottom sheet with 24px of headroom on a 390px screen is throwing away
      the only dimension in short supply. */
