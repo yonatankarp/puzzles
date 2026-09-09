@@ -63,5 +63,11 @@ jobs:
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
+          # Version 4 of this action stopped putting dotfiles in the artifact,
+          # and dist/.nojekyll is the only one the build makes. Pages serves the
+          # artifact directly here rather than running Jekyll over it, so losing
+          # the file ought to change nothing -- but "ought to" is a strange
+          # thing to leave in the deploy step when the alternative is one line.
+          include-hidden-files: true
       - id: deployment
         uses: actions/deploy-pages@v5
