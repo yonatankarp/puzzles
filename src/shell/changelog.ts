@@ -25,6 +25,16 @@ export interface Release {
 /** Newest first. */
 export const RELEASES: Release[] = [
   {
+    version: '2.10.0',
+    date: '2026-09-09',
+    summary: 'Queens can cross off for you.',
+    changes: [
+      { kind: 'added', text: 'Auto-mark, in Queens. Turn it on and every queen you put down crosses off the squares it rules out — its row, its column, its colour region and everything touching it — so the bookkeeping stops being something you do by hand and the board shows you what is genuinely still open.' },
+      { kind: 'added', text: 'It never touches work you did yourself. Take a queen back and the crosses that came with it go too; turn the setting off and the rest go with it; the squares you crossed off by hand stay exactly where you put them, either way. Turning it on works on the board in front of you rather than only on the next queen, and it is remembered between visits.' },
+      { kind: 'changed', text: 'It is off to begin with, and it is a way of playing rather than a hint: it places nothing you could not have worked out from the board in front of you, so it does not mark a daily as helped and does not stop a solve setting a record.' }
+    ]
+  },
+  {
     version: '2.9.0',
     date: '2026-09-09',
     summary: 'A fourth game: Lamplight.',

@@ -2,6 +2,19 @@
 
 Generated from `src/changelog.ts` by `tools/make-changelog.js` — edit that, not this.
 
+## 2.10.0 — 2026-09-09
+
+Queens can cross off for you.
+
+### Added
+
+- Auto-mark, in Queens. Turn it on and every queen you put down crosses off the squares it rules out — its row, its column, its colour region and everything touching it — so the bookkeeping stops being something you do by hand and the board shows you what is genuinely still open.
+- It never touches work you did yourself. Take a queen back and the crosses that came with it go too; turn the setting off and the rest go with it; the squares you crossed off by hand stay exactly where you put them, either way. Turning it on works on the board in front of you rather than only on the next queen, and it is remembered between visits.
+
+### Changed
+
+- It is off to begin with, and it is a way of playing rather than a hint: it places nothing you could not have worked out from the board in front of you, so it does not mark a daily as helped and does not stop a solve setting a record.
+
 ## 2.9.0 — 2026-09-09
 
 A fourth game: Lamplight.

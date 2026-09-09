@@ -34,6 +34,12 @@ export default function QueensGame({ shared, seed, onBack }: Props) {
   const regionRef = useRef<HTMLDivElement>(null);
   const announcerRef = useRef<HTMLDivElement>(null);
   const [snap, setSnap] = useState<Snapshot>(() => core.snapshot());
+  /*
+   * Auto-mark is Queens' own setting rather than the collection's, so it is
+   * held here instead of in the shared snapshot four games would carry it in.
+   * The core remembers it between visits; this only mirrors it for the chip.
+   */
+  const [autoMark, setAutoMark] = useState(() => core.autoMarking);
 
   useEffect(() => {
     core.bindClock(clockRef.current);
@@ -101,6 +107,18 @@ export default function QueensGame({ shared, seed, onBack }: Props) {
           onHint={() => core.hint()}
           onReveal={() => core.reveal()}
         />
+        {/* Its own row, and shown in both modes: unlike Auto-next there is
+            nothing about it that belongs to practice. */}
+        <div className="status">
+          <button
+            className="chip" id="autoMarkBtn" aria-pressed={autoMark}
+            onClick={() => { core.setAutoMark(!autoMark); setAutoMark(!autoMark); }}
+            title="Cross off every square a queen rules out, the moment it goes down"
+          >
+            <span className="dot" />Auto-mark
+          </button>
+          <div id="autoMarkNote">crosses off what each queen rules out</div>
+        </div>
         <Status snap={snap} onToggleAutoNext={() => core.toggleAutoNext()} onShareSeed={() => core.shareSeed()} />
         {snap.mode === 'daily' && <History snap={snap} />}
         <div className="footer">

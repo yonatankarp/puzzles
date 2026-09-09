@@ -592,6 +592,214 @@ section('the board can be played without a pointer');
   await page.close();
 }
 
+// --- the board can cross off for you ------------------------------------------
+section('the board can cross off for you');
+/*
+ * Auto-marking: the board crossing off, on its own account, every square a
+ * queen rules out. The whole of it is one promise -- that it never touches
+ * anything you did yourself -- so that is what most of this checks, in both
+ * directions: a queen coming back off takes its own crosses with it, and
+ * turning the setting off takes the rest, and neither one may take yours.
+ */
+{
+  const page = await open({ scheme: 'dark' });
+  await page.eval('window.__queens.restart(); return 1');
+  await settle(page);
+
+  const chip = () => page.eval(`
+    const b = document.getElementById('autoMarkBtn');
+    return { there: !!b, pressed: b && b.getAttribute('aria-pressed') };`);
+  const press = async () => {
+    await page.eval("document.getElementById('autoMarkBtn').click(); return 1");
+    await settle(page);
+  };
+  const board = () => page.eval(`
+    const q = window.__queens;
+    return {
+      crosses: q.state.marks.filter(m => m === 'blocked').length,
+      queens: q.state.marks.filter(m => m === 'queen').length,
+      marks: q.state.marks
+    };`);
+
+  const start = await chip();
+  ok(start.there, 'there is no auto-mark control on the Queens page');
+  ok(start.pressed === 'false', `auto-mark starts "${start.pressed}", not off — it is opt-in`);
+
+  // Off, it is the game it always was: a queen crosses nothing off by itself.
+  await page.eval(`
+    const q = window.__queens, p = q.state.puzzle, n = p.n;
+    const first = 0 * n + p.solution[0];
+    q.cycle(first); q.cycle(first);               // empty -> crossed off -> queen
+    return 1;`);
+  const quiet = await board();
+  ok(quiet.queens === 1, `the first queen did not go down (${quiet.queens} on the board)`);
+  ok(quiet.crosses === 0, `with auto-mark off a queen crossed ${quiet.crosses} squares off`);
+
+  /*
+   * On, and it acts on the board in front of you rather than only on the next
+   * queen -- a setting you have to clear the board to feel is a worse setting.
+   * What it crossed off is checked against the rules of the game, worked out
+   * here, rather than against whatever the board decided.
+   */
+  await press();
+  const on = await chip();
+  ok(on.pressed === 'true', `pressing the chip left it "${on.pressed}"`);
+  const retro = await page.eval(`
+    const q = window.__queens, p = q.state.puzzle, n = p.n;
+    const queens = [];
+    q.state.marks.forEach((m, c) => { if (m === 'queen') queens.push(c); });
+    const ruled = [];
+    for (let cell = 0; cell < n * n; cell++) {
+      if (q.state.marks[cell] === 'queen') continue;
+      const r = (cell / n) | 0, c = cell % n;
+      const hit = queens.some(qq => {
+        const qr = (qq / n) | 0, qc = qq % n;
+        return qr === r || qc === c || p.regions[qq] === p.regions[cell]
+          || (Math.abs(qr - r) <= 1 && Math.abs(qc - c) <= 1);
+      });
+      if (hit) ruled.push(cell);
+    }
+    const crossed = [];
+    q.state.marks.forEach((m, c) => { if (m === 'blocked') crossed.push(c); });
+    return { ruled: ruled.join(','), crossed: crossed.join(','), count: ruled.length,
+             said: document.getElementById('announcer').textContent };`);
+  ok(retro.count > 0, 'the board under test has a queen that rules nothing out');
+  ok(retro.crossed === retro.ruled,
+     `auto-mark crossed off ${retro.crossed.split(',').length} squares, the rules rule out ${retro.count}`);
+  ok(/crossed off/i.test(retro.said),
+     `turning auto-mark on changed the board silently: "${retro.said}"`);
+  if (shotDir) await page.screenshot(`${shotDir}/queens-auto-mark.png`);
+
+  // A cross of your own, on a square no queen rules out. Undo takes the queen
+  // back and the board's crosses with it; yours is not the board's to clear.
+  const mine = await page.eval(`
+    const q = window.__queens;
+    const free = q.state.marks.indexOf('empty');
+    if (free >= 0) q.cycle(free);
+    return { free, mark: q.state.marks[free] };`);
+  ok(mine.free >= 0, 'one queen with auto-mark on left nowhere to cross off by hand');
+  ok(mine.mark === 'blocked', `crossing a free square off by hand left it "${mine.mark}"`);
+
+  await page.eval('window.__queens.undo(); return 1');
+  const undone = await board();
+  ok(undone.queens === 0, `undo left ${undone.queens} queens on the board`);
+  ok(undone.marks[mine.free] === 'blocked',
+     'undo cleared a cross the player made, not just the ones the board drew');
+  ok(undone.crosses === 1,
+     `undo left ${undone.crosses} crosses standing; only the one made by hand should remain`);
+
+  // And turning the setting off is the same promise: its own crosses go, yours stay.
+  await page.eval('window.__queens.restart(); return 1');
+  const paired = await page.eval(`
+    const q = window.__queens, p = q.state.puzzle, n = p.n;
+    const first = 0 * n + p.solution[0];
+    q.cycle(first); q.cycle(first);               // a queen, crossing its lines off
+    const auto = q.state.marks.filter(m => m === 'blocked').length;
+    const free = q.state.marks.indexOf('empty');
+    q.cycle(free);                                // and one cross of your own
+    return { auto, free };`);
+  ok(paired.auto > 0, 'a queen placed with auto-mark on crossed nothing off');
+  ok(paired.free >= 0, 'no square was left free to cross off by hand');
+
+  await press();
+  const cleared = await chip();
+  ok(cleared.pressed === 'false', `pressing the chip again left it "${cleared.pressed}"`);
+  const after = await board();
+  ok(after.queens === 1, `turning auto-mark off took a queen off the board (${after.queens} left)`);
+  ok(after.marks[paired.free] === 'blocked',
+     'turning auto-mark off cleared a cross the player made');
+  ok(after.crosses === 1,
+     `turning auto-mark off left ${after.crosses} crosses, expected only the one made by hand`);
+
+  // It is a habit rather than a per-board decision, so it is remembered.
+  await press();
+  ok((await chip()).pressed === 'true', 'the chip did not come back on');
+  await page.reload();
+  await prep(page);
+  ok((await chip()).pressed === 'true', 'auto-mark was forgotten across a reload');
+
+  // And it belongs to the daily as much as to practice -- unlike Auto-next,
+  // which is about being handed the next board and so has no daily meaning.
+  await page.eval("window.__queens.setMode('daily'); return 1");
+  await settle(page);
+  ok((await chip()).there, 'the auto-mark control disappears in daily mode');
+  await page.eval("window.__queens.setMode('practice'); return 1");
+  await prep(page);
+
+  // --- and a board finished with it on is still worth watching ----------------
+  /*
+   * On a solved board every empty square is ruled out by something, so with
+   * auto-marking on the finish would otherwise fade a cross on every square of
+   * the board at once -- a full-board wash over the crowns rising through it.
+   */
+  await page.eval('window.__queens.restart(); return 1');
+  const finish = await page.eval(`
+    const q = window.__queens, p = q.state.puzzle, n = p.n;
+    let during = 0;
+    for (let row = 0; row < n; row++) {
+      const cell = row * n + p.solution[row];
+      for (let i = 0; i < 3 && q.state.marks[cell] !== 'queen'; i++) q.cycle(cell);
+      during = Math.max(during, q.state.marks.filter(m => m === 'blocked').length);
+    }
+    return { solved: q.state.solved, during,
+             queens: q.state.marks.filter(m => m === 'queen').length,
+             crosses: q.state.marks.filter(m => m === 'blocked').length, n };`);
+  ok(finish.queens === finish.n,
+     `${finish.queens} of ${finish.n} queens went down with auto-mark on`);
+  // Or the check below would pass just as well with the setting switched off.
+  ok(finish.during > 0, 'no square was ever crossed off during the solve');
+  ok(finish.solved === true, 'a board solved with auto-mark on was not recognised as a solve');
+  ok(finish.crosses === 0,
+     `the finished board is still wearing ${finish.crosses} of the board's own crosses`);
+  // --- and a daily picked back up knows which crosses were its own -----------
+  /*
+   * A saved run is a list of marks with nothing in it saying which of them the
+   * board drew, so restoring one has to work that out again. Without that, a
+   * resumed daily keeps them for ever: the queen comes off and its crosses
+   * stay, which is the one thing this setting promises not to do.
+   */
+  await page.eval("window.__queens.setMode('daily'); return 1");
+  await settle(page);
+  await page.eval('window.__queens.reveal(); return 1');
+  const saved = await page.eval(`
+    const q = window.__queens, p = q.state.puzzle, n = p.n;
+    const cell = 0 * n + p.solution[0];
+    for (let i = 0; i < 3 && q.state.marks[cell] !== 'queen'; i++) q.cycle(cell);
+    return { queens: q.state.marks.filter(m => m === 'queen').length,
+             crosses: q.state.marks.filter(m => m === 'blocked').length };`);
+  ok(saved.queens === 1, `the daily took ${saved.queens} queens, expected one`);
+  ok(saved.crosses > 0, 'a queen on the daily crossed nothing off with auto-mark on');
+
+  await sleep(1200);                                  // past the save throttle
+  await page.reload();
+  for (let i = 0; i < 120; i++) {
+    if (await page.eval('return !!(window.__queens && window.__queens.state.puzzle)')) break;
+    await sleep(50);
+  }
+  if (await page.eval("return !!document.getElementById('rules')")) {
+    await page.eval("document.getElementById('rulesClose').click(); return 1");
+    await sleep(300);
+  }
+  await page.eval('window.__queens.reveal(); return 1');
+  await settle(page);
+  const resumed = await page.eval(`
+    const q = window.__queens;
+    const before = q.state.marks.filter(m => m === 'blocked').length;
+    q.undo();
+    return { before, mode: q.state.mode,
+             after: q.state.marks.filter(m => m === 'blocked').length,
+             queens: q.state.marks.filter(m => m === 'queen').length };`);
+  ok(resumed.mode === 'daily', `the reload came back in ${resumed.mode}, not the daily`);
+  ok(resumed.before === saved.crosses,
+     `the resumed daily came back with ${resumed.before} crosses, not the ${saved.crosses} it was saved with`);
+  ok(resumed.queens === 0, 'undo did not take the restored queen back off');
+  ok(resumed.after === 0,
+     `${resumed.after} of the board's own crosses outlived the queen that drew them`);
+
+  ok(page.consoleErrors.length === 0, `auto-mark errors: ${page.consoleErrors.join(' | ')}`);
+  await page.close();
+}
+
 console.log(failures === 0
   ? `queens-feel  ${checks} browser assertions, 0 failures`
   : `queens-feel  ${checks} browser assertions, ${failures} failures`);

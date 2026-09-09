@@ -13,10 +13,16 @@ import { QueensBoard, type Mark } from './board.ts';
 import { fingerprint } from './daily.ts';
 import { QueensSource } from './source.ts';
 import { rampColour } from '../../shell/ramp.ts';
+import { read as readPref, write as writePref } from '../../shell/prefs.ts';
 import { ShellCore, mergeHooks, type GameProgress, type TierInfo } from '../../shell/core.ts';
 
 /** Marks are stored as cell * 3 + code, so a run is a flat list of numbers. */
 const CODE: Record<Exclude<Mark, 'empty'>, number> = { blocked: 1, queen: 2 };
+
+/** "1 square" / "4 squares", for the lines the announcer reads out. */
+function squares(count: number): string {
+  return `${count} square${count === 1 ? '' : 's'}`;
+}
 
 const ARROWS: Record<string, [number, number]> = {
   ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1]
@@ -31,6 +37,17 @@ export class QueensCore extends ShellCore<QueensPuzzle> {
   private view: QueensBoard | null = null;
   private marks: Mark[] = [];
   private conflicts = new Set<number>();
+  /*
+   * Auto-marking: crossing off, on the board's own account, every square a
+   * queen rules out. Off by default -- it is a way of playing rather than a
+   * fix for something -- and remembered, because it is a habit and not a
+   * per-board decision.
+   */
+  private autoMark = readPref('queens.autoMark') === 'on';
+  /* Which crosses the board drew rather than the player. They are told apart
+   * so a queen coming back off can take its own crosses with it and leave the
+   * notes you made yourself alone. */
+  private autoCrossed = new Set<number>();
   /* The order queens were placed in. Cell index alone cannot answer
    * "which was last", and both undo and the celebration need to know. */
   private order: number[] = [];
@@ -60,6 +77,7 @@ export class QueensCore extends ShellCore<QueensPuzzle> {
   protected resetState(puzzle: QueensPuzzle): void {
     this.marks = new Array<Mark>(puzzle.n * puzzle.n).fill('empty');
     this.conflicts = new Set();
+    this.autoCrossed = new Set();
     this.cursor = -1;
   }
 
@@ -130,6 +148,8 @@ export class QueensCore extends ShellCore<QueensPuzzle> {
       if (move % 3 === 2) this.order.push(cell);
     }
     this.recomputeConflicts();
+    this.adoptCrosses();
+    this.syncAutoCrosses();      // and finish anything the saved run left half-marked
     return true;
   }
 
@@ -231,6 +251,7 @@ export class QueensCore extends ShellCore<QueensPuzzle> {
   protected onRestart(): void {
     this.marks.fill('empty');
     this.conflicts = new Set();
+    this.autoCrossed = new Set();
     this.order = [];
     this.painting = false;
     this.lastPainted = -1;
@@ -244,6 +265,7 @@ export class QueensCore extends ShellCore<QueensPuzzle> {
     this.marks[cell] = 'empty';
     this.backtracks++;
     this.recomputeConflicts();
+    this.syncAutoCrosses();
     this.setBanner(null);
     this.redraw();
     this.markDirty();
@@ -252,6 +274,10 @@ export class QueensCore extends ShellCore<QueensPuzzle> {
   protected onReveal(): void {
     const puzzle = this.puzzle!;
     this.marks.fill('empty');
+    /* No sweep here, deliberately. Against a finished solution every empty
+     * square is ruled out by something, so auto-marking would cross off the
+     * whole board and bury the answer it was asked to show. */
+    this.autoCrossed = new Set();
     this.order = [];
     puzzle.solution.forEach((col, row) => {
       const cell = row * puzzle.n + col;
@@ -288,8 +314,120 @@ export class QueensCore extends ShellCore<QueensPuzzle> {
     }
     this.startClock();
     this.recomputeConflicts();
+    this.syncAutoCrosses();
     this.redraw();
     this.checkWin();
+  }
+
+  // ---- auto-marking ---------------------------------------------------------
+
+  /** Whether the board is crossing squares off for you. */
+  get autoMarking(): boolean { return this.autoMark; }
+
+  /*
+   * Turn auto-marking on or off. Both directions act on the board in front of
+   * you rather than only on the next queen: turning it on crosses off what the
+   * queens already down rule out, and turning it off takes those crosses away
+   * again. Anything you crossed off yourself is untouched either way.
+   */
+  setAutoMark(on: boolean): void {
+    if (this.autoMark === on) return;
+    this.autoMark = on;
+    writePref('queens.autoMark', on ? 'on' : 'off');
+    /* Not gated on the board being uncovered. A daily picked back up sits
+     * behind the gate with its queens already on it, and a setting that
+     * silently did nothing there -- then took effect two moves later -- is the
+     * kind of thing you stop trusting. Marks are marks whether the regions
+     * under them are showing or not. */
+    if (this.solved || this.revealed || !this.puzzle) return;
+    const { added, cleared } = this.syncAutoCrosses();
+    this.announce(on
+      ? `Auto-mark on${added ? `. ${squares(added)} crossed off` : ''}`
+      : `Auto-mark off${cleared ? `. ${squares(cleared)} cleared` : ''}`);
+    this.redraw();
+    this.markDirty();
+  }
+
+  /*
+   * Every square some queen rules out: its row, its column, its colour region,
+   * and the ring of squares touching it. Computed for the whole board at once
+   * rather than per square, because the sweep below asks about all of them.
+   */
+  private ruledOut(): boolean[] {
+    const { n, regions } = this.puzzle!;
+    const rows = new Set<number>();
+    const cols = new Set<number>();
+    const regs = new Set<number>();
+    const touching = new Set<number>();
+    this.marks.forEach((mark, cell) => {
+      if (mark !== 'queen') return;
+      const row = (cell / n) | 0;
+      const col = cell % n;
+      rows.add(row);
+      cols.add(col);
+      regs.add(regions[cell]!);
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          const r = row + dr;
+          const c = col + dc;
+          if (r >= 0 && r < n && c >= 0 && c < n) touching.add(r * n + c);
+        }
+      }
+    });
+    return this.marks.map((_, cell) =>
+      rows.has((cell / n) | 0) || cols.has(cell % n)
+      || regs.has(regions[cell]!) || touching.has(cell));
+  }
+
+  /*
+   * Bring the board's own crosses back in line with the queens on it. One
+   * sweep, run after anything that moves a queen, rather than a rule per way
+   * of moving one -- undo, a hint clearing queens that cannot be right, and
+   * the toggle itself all need the same answer, and four copies of it would
+   * be four chances to disagree.
+   */
+  private syncAutoCrosses(): { added: number; cleared: number } {
+    if (!this.puzzle) { this.autoCrossed.clear(); return { added: 0, cleared: 0 }; }
+    /* A square that is no longer a cross is no longer the board's: tapping an
+     * auto-cross through to a queen must not be undone by the sweep that
+     * follows the tap. */
+    for (const cell of [...this.autoCrossed]) {
+      if (this.marks[cell] !== 'blocked') this.autoCrossed.delete(cell);
+    }
+    const ruled = this.ruledOut();
+    let added = 0;
+    if (this.autoMark) {
+      this.marks.forEach((mark, cell) => {
+        if (mark !== 'empty' || !ruled[cell]) return;
+        this.marks[cell] = 'blocked';
+        this.autoCrossed.add(cell);
+        added++;
+      });
+    }
+    let cleared = 0;
+    for (const cell of [...this.autoCrossed]) {
+      if (this.autoMark && ruled[cell]) continue;
+      this.marks[cell] = 'empty';
+      this.autoCrossed.delete(cell);
+      cleared++;
+    }
+    return { added, cleared };
+  }
+
+  /*
+   * A run restored from storage is a list of marks with nothing saying which
+   * of them the board drew. Every cross standing on a ruled-out square is
+   * taken as the board's, so picking a daily back up behaves like the session
+   * that saved it; the worst this can get wrong is adopting a cross you made
+   * yourself on a square a queen was going to rule out anyway.
+   */
+  private adoptCrosses(): void {
+    this.autoCrossed = new Set();
+    if (!this.autoMark || !this.puzzle) return;
+    const ruled = this.ruledOut();
+    this.marks.forEach((mark, cell) => {
+      if (mark === 'blocked' && ruled[cell]) this.autoCrossed.add(cell);
+    });
   }
 
   // ---- the keyboard ---------------------------------------------------------
@@ -386,6 +524,7 @@ export class QueensCore extends ShellCore<QueensPuzzle> {
       return;
     }
     this.marks[cell] = 'empty';
+    this.autoCrossed.delete(cell);   // taken off by hand is no longer the board's
     this.startClock();
     this.audio.step(this.order.length / Math.max(1, this.puzzle!.n));
     this.announce(`${this.where(cell)}, cross removed`);
@@ -464,6 +603,15 @@ export class QueensCore extends ShellCore<QueensPuzzle> {
     if (!puzzle) return;
     if (this.marks.filter(m => m === 'queen').length !== puzzle.n) return;
     if (this.conflicts.size) return;
+    /*
+     * The finish fades the crosses away behind the rising crowns. On a solved
+     * board every empty square is ruled out by something, so with auto-marking
+     * on that fade is the whole board at once and the replay is lost under it.
+     * The board's own crosses go first, leaving only the notes you made
+     * yourself to clear -- which is what the celebration was drawn for.
+     */
+    for (const cell of this.autoCrossed) this.marks[cell] = 'empty';
+    this.autoCrossed.clear();
     this.finish();
   }
 
@@ -480,6 +628,7 @@ export class QueensCore extends ShellCore<QueensPuzzle> {
     this.marks[cell] = next;
     this.startClock();
     this.recomputeConflicts();
+    const swept = this.syncAutoCrosses();
 
     /*
      * Sound and speech only once the rules have been re-checked. Playing the
@@ -487,11 +636,15 @@ export class QueensCore extends ShellCore<QueensPuzzle> {
      * warmly as one that finished a region.
      */
     if (current === 'queen') {
-      this.announce('Queen removed');
+      this.announce('Queen removed'
+        + (swept.cleared ? `. ${squares(swept.cleared)} cleared` : ''));
     } else if (next === 'queen') {
+      /* One chime for the queen, not one click per square it crossed off:
+       * the crosses are the board showing its working, not moves you made. */
       if (this.conflicts.has(cell)) this.audio.clash();
       else this.audio.number(this.order.length);
-      this.announce(this.describe(cell) + this.clashNote(cell));
+      this.announce(this.describe(cell) + this.clashNote(cell)
+        + (swept.added ? `. ${squares(swept.added)} crossed off` : ''));
     } else {
       // Crossing a square off is the fine-grained move, the way filling one is
       // in Zip -- so it gets the quiet click that 'sparse' turns off, not a chime.
@@ -506,6 +659,7 @@ export class QueensCore extends ShellCore<QueensPuzzle> {
     const core = this;
     return mergeHooks(this.baseHooks(), {
       cycle: (cell: number) => core.cycle(cell),
+      setAutoMark: (on: boolean) => core.setAutoMark(on),
       place: (cell: number) => {
         if (core.marks[cell] !== 'queen') core.order.push(cell);
         core.marks[cell] = 'queen';
@@ -521,6 +675,8 @@ export class QueensCore extends ShellCore<QueensPuzzle> {
           get puzzle() { return core.puzzle; },
           get marks() { return core.marks; },
           get conflicts() { return [...core.conflicts]; },
+          get autoMark() { return core.autoMark; },
+          get autoCrossed() { return [...core.autoCrossed].sort((a, b) => a - b); },
           get order() { return [...core.order]; },
           get cursor() { return core.cursor; },
           get phase() { return core.phase; },
