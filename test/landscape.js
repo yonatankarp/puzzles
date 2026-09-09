@@ -43,6 +43,9 @@ const GAMES = ['zip', 'queens', 'patch', 'lamplight'];
 
 const site = await serve('dist-test');
 
+let tightest = Infinity;
+let worst = { slack: Infinity, at: '' };
+
 /* What the page is actually made of, measured rather than assumed. */
 const MEASURE = `
   const wrap = document.querySelector('.wrap');
@@ -77,6 +80,13 @@ const MEASURE = `
     innerH: window.innerHeight,
     minIcon: icons.length ? Math.min(...icons) : null,
     clockRight: clock ? Math.round(clock.getBoundingClientRect().right) : null,
+    // How much room is left under the longest column. Not asserted against a
+    // number -- a Linux runner draws this text a shade taller than a Mac does,
+    // so any threshold would mean different things in the two places -- but
+    // printed, because the first version of this layout passed here by four
+    // pixels and failed in CI by four, and a margin nobody can see is a margin
+    // nobody notices shrinking.
+    slack: window.innerHeight - Math.round(Math.max(...boxes.map(b => b.y + b.h))),
     boardOnScreen: (() => {
       const b = document.querySelector('svg.board');
       if (!b) return true;
@@ -109,12 +119,15 @@ for (const [width, height] of VIEWPORTS) {
 
       const at = `${width}×${height} ${game} ${mode}`;
       const m = await page.eval(MEASURE);
+      tightest = Math.min(tightest, m.slack);
+      if (m.slack < worst.slack) worst = { slack: m.slack, at };
 
       ok(m.overlaps.length === 0, `${at}: ${m.overlaps.join('; ')}`);
       ok(m.scrollW <= m.innerW + 1,
          `${at}: the page scrolls sideways (${m.scrollW} wide in ${m.innerW})`);
       ok(m.scrollH <= m.innerH + 1,
-         `${at}: the page scrolls down (${m.scrollH} tall in ${m.innerH})`);
+         `${at}: the page scrolls down (${m.scrollH} tall in ${m.innerH}, ` +
+         `${-m.slack}px past the bottom)`);
       // The header's box here is the chrome column, not the viewport, which is
       // how these came to be squeezed to 17px with their touch target on them.
       ok(m.minIcon === null || m.minIcon >= 30,
@@ -133,6 +146,7 @@ for (const [width, height] of VIEWPORTS) {
   console.log(`  ${width}×${height}  ${failures === 0 ? 'clean' : 'FAILURES'}`);
 }
 
+console.log(`  tightest board: ${worst.at}, ${worst.slack}px to spare`);
 console.log(failures === 0
   ? `landscape  ${checks} browser assertions, 0 failures`
   : `landscape  ${checks} browser assertions, ${failures} failures`);

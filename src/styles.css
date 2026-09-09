@@ -520,10 +520,10 @@ kbd {
     grid-template-columns: auto minmax(0, 460px);
     justify-content: center;
     column-gap: 18px;
-    /* Four rather than six: the chrome column has more rows in it than this
+    /* Three rather than six: the chrome column has more rows in it than this
        layout was written for, and the gaps between them are the cheapest
-       eighteen pixels to give back. */
-    row-gap: 4px;
+       pixels in the file to give back. */
+    row-gap: 3px;
     /*
      * Row 4 is the slack. The board spans the whole column and is taller than
      * the chrome beside it needs, and without one flexible track that surplus
@@ -596,8 +596,24 @@ kbd {
   .wrap:has(.boardwrap) > header .icon-btn { flex: none; }
   .wrap:has(.boardwrap) > header .clock { flex: none; font-size: 22px; }
 
-  /* Tighter chrome, so the slack row stays real rather than being eaten. */
+  /*
+   * Tighter chrome, so the slack row stays real rather than being eaten.
+   *
+   * The numbers here are not cosmetic. Queens practice is the longest chrome
+   * column the collection has -- auto-mark, the counts, the board code and
+   * auto-next, four rows where Zip has two -- and on a 375pt phone it was
+   * finishing four pixels inside the screen on this machine and four pixels
+   * outside it on a Linux runner, whose fonts are a shade taller. A layout that
+   * fits by four pixels does not fit; it is a coin toss that happens to have
+   * landed. These take about thirty back, so the tightest board in the
+   * collection has room that survives being drawn somewhere else.
+   *
+   * The chips lose height and not reach: the invisible target on them is set
+   * from their edges, so a shorter pill is still a 44px thing to press.
+   */
   .btn { padding: 8px 2px; }
+  .chip { padding: 3px 10px; }
+  .status { font-size: 11.5px; }
   .daily { min-height: 38px; padding: 6px 10px 6px 12px; }
   .hint { line-height: 1.5; }
 
@@ -614,9 +630,12 @@ kbd {
     .wrap:has(.boardwrap) { row-gap: 2px; }
     .wrap:has(.boardwrap) > .hint { display: none; }
     .wrap:has(.boardwrap) > .footer { margin-top: 0; }
+    /* Tighter than the block above, never looser -- this rule comes after it,
+       so a bigger number here would quietly undo it on the one size that can
+       least afford the pixels. */
     .btn { padding: 7px 2px; font-size: 12px; }
-    .chip { padding: 4px 10px; }
-    .status { font-size: 11.5px; }
+    .chip { padding: 2px 9px; }
+    .status { font-size: 11px; }
     /* Queens carries the most rows of any game here -- auto-mark, the counts,
        the board code and auto-next -- and the sentence beside each chip is the
        part that is explaining rather than doing. */
