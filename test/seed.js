@@ -98,10 +98,34 @@ async function codeForTier(page, letter) {
 }
 
 /** Wait until a specific tier's board has actually landed. Expert is slow. */
+/*
+ * Settled means the core has the board AND the chip on screen is naming it.
+ *
+ * This used to ask the core only, and every caller then read #seedCode out of
+ * the DOM on the next line. The chip is React and the core publishes at most
+ * once an animation frame, so on a machine with something better to do the
+ * read landed a frame early and got the previous board's code -- which is how
+ * this suite came to report a medium code beside an expert link and call it a
+ * bug in the app. The app was right: the chip catches up, and it names the old
+ * board rather than the new one in the meantime, which is the safe direction.
+ * It is the reading that was too early, twice now, so the wait covers both
+ * halves rather than the one that is quick to ask.
+ */
 async function settledOn(page, game, tier) {
+  const hook = hookOf(game);
   for (let i = 0; i < 200; i++) {
-    const now = await page.eval(`return ${hookOf(game)}.core.seedTier`);
-    if (now === tier && !(await page.eval(`return ${hookOf(game)}.core.busy`))) return true;
+    const state = await page.eval(`
+      const h = ${hook};
+      const chip = document.getElementById('seedCode');
+      const link = h.core.seedLink();
+      return {
+        tier: h.core.seedTier,
+        busy: h.core.busy,
+        // No chip at all is fine -- not every screen shows one. A chip that
+        // disagrees with the link is the board and its name being out of step.
+        named: !chip || link.endsWith(chip.textContent)
+      };`);
+    if (state.tier === tier && !state.busy && state.named) return true;
     await sleep(50);
   }
   return false;
