@@ -1,0 +1,43 @@
+# Dependabot's pull requests, merged on green.
+#
+# Minor and patch only: a major is the one that can change the build under you,
+# so it is left to be read. The merge is queued rather than performed -- GitHub
+# holds it until the `test` check on the pull request passes, which is the whole
+# point of the exercise. A ruleset on main is what makes that check required;
+# without it, a queued merge lands immediately and the suite gates nothing.
+name: Dependabot auto-merge
+
+on: pull_request
+
+# Dependabot's pull requests get a read-only token unless the workflow asks for
+# more, and it cannot merge anything with one.
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ask Dependabot what it is proposing
+        id: meta
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # A grouped request reports the largest step it contains, so a group that
+      # smuggled in a major would be caught here rather than merged as a minor.
+      - name: Queue the merge behind the suite
+        if: steps.meta.outputs.update-type != 'version-update:semver-major'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Say why a major was left alone
+        if: steps.meta.outputs.update-type == 'version-update:semver-major'
+        run: gh pr comment "$PR_URL" --body "Held for review — this is a major update, and auto-merge covers minor and patch only."
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

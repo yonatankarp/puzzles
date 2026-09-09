@@ -1,0 +1,44 @@
+# Dependabot's version updates.
+#
+# Alerts and security fixes are repository settings and are already on; this
+# file is the other half -- routine bumps, on a schedule, whether or not
+# anything is vulnerable.
+#
+# Grouped rather than one pull request per package. Ungrouped, a quiet week is
+# still five or six pull requests, each one a full run of a suite that takes
+# six minutes and drives a real browser. Minor and patch travel together in a
+# single request that the auto-merge workflow can take in one go; anything
+# major is left out of the group deliberately, so it arrives on its own and
+# waits to be looked at.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Berlin
+    open-pull-requests-limit: 5
+    groups:
+      npm:
+        update-types:
+          - minor
+          - patch
+
+  # The workflows pin their actions, so they go stale the same way packages do
+  # -- and more quietly. The Node 20 deprecation warning on every run of the
+  # deploy is exactly the kind of thing this is here to clear.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Berlin
+    open-pull-requests-limit: 5
+    groups:
+      actions:
+        update-types:
+          - minor
+          - patch

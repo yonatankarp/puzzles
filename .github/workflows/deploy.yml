@@ -3,6 +3,11 @@ name: Test and deploy
 on:
   push:
     branches: [main]
+  # Pull requests run the suite but never publish. Nothing opens one here by
+  # hand -- this is for Dependabot, whose requests would otherwise arrive with
+  # no check on them at all, and whose auto-merge waits on the `test` job below.
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -10,10 +15,12 @@ permissions:
   pages: write
   id-token: write
 
-# Let a running deploy finish rather than cancelling it half-published.
+# Let a running deploy finish rather than cancelling it half-published. Pull
+# requests get a group of their own, so a superseded one can be cancelled
+# without ever queueing behind -- or worse, interrupting -- a live deploy.
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.ref) || 'pages' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   test:
@@ -32,6 +39,8 @@ jobs:
 
   deploy:
     needs: test
+    # A pull request is tested, not published.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
