@@ -370,20 +370,48 @@ kbd {
 
 /* ------------------------------------------------------------------- index */
 .index { display: flex; flex-direction: column; gap: 16px; }
-.index-lede { margin: 0; color: var(--dim); font-size: 13.5px; line-height: 1.6; }
-.cards { display: flex; flex-direction: column; gap: 10px; }
+/*
+ * The one page allowed to be wider than a board. 460px is the width of a
+ * playable board and everything that belongs beside one, which is the right
+ * measure for a game and the wrong one for a list of them -- it left a
+ * landscape phone showing one and a half cards down the middle of the screen
+ * with two thirds of the width empty. Two columns of cards is what this is,
+ * and no more: a third column would push the lede out to an unreadable line
+ * and leave the fourth card alone on a row of its own.
+ */
+.wrap:has(.index) { max-width: 760px; }
+/* Prose does not want the extra width even when the cards do. */
+.index-lede { margin: 0; max-width: 62ch; color: var(--dim); font-size: 13.5px; line-height: 1.6; }
+/*
+ * One column while there is only one column's worth of room, two as soon as
+ * there is room for two. `auto-fit` rather than a breakpoint because what
+ * decides this is the width available to a card, not the class of device the
+ * width came from -- a phone on its side, a small tablet and a narrow window
+ * all want the same thing and none of them is worth its own media query.
+ */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 10px;
+  align-items: start;
+}
 .card {
-  display: block; text-decoration: none; color: inherit;
+  display: flex; gap: 14px; align-items: flex-start;
+  text-decoration: none; color: inherit;
   border: 1px solid var(--line); border-left: 3px solid var(--card, var(--accent));
   background: var(--panel); border-radius: 12px; padding: 14px 16px;
   transition: border-color .12s, transform .12s;
 }
 .card:hover { border-color: var(--dim); transform: translateY(-1px); }
 .card:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
+/* The picture holds its size; the words take what is left and wrap into it. */
+.card-art { flex: none; display: block; width: 72px; }
+.card-art-board { display: block; width: 100%; height: auto; border-radius: 8px; }
+.card-body { min-width: 0; }
 .card-head { display: flex; align-items: center; gap: 8px; font-size: 16px; }
 .card-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--card, var(--accent)); }
 .card-streak { margin-left: auto; font-size: 12.5px; }
-.card-tagline { margin: 7px 0 0; font-size: 13.5px; }
+.card-tagline { margin: 6px 0 0; font-size: 13.5px; }
 .card-rules { margin: 5px 0 0; font-size: 12px; line-height: 1.55; }
 .card-foot { margin: 10px 0 0; font-size: 12px; font-variant-numeric: tabular-nums; }
 
@@ -456,8 +484,11 @@ kbd {
  * width, and the chrome moves beside it instead of above and below. Everything
  * is then on screen at once and nothing scrolls.
  *
- * Only a page that has a board rearranges: the index is a list, and a list is
- * right to keep reading down.
+ * The index rearranges too, but by itself: its cards are a grid that takes a
+ * second column as soon as one fits, so a phone on its side gets two columns
+ * without this block having to know anything about it. It used to be a single
+ * column that kept reading down, which on a landscape phone meant one and a
+ * half cards on screen and two thirds of the width empty.
  */
 @media (orientation: landscape) and (max-height: 520px) {
   body {

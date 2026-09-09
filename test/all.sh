@@ -12,6 +12,7 @@ node test/patch.js 20
 node test/lamplight.js 20
 node test/daily.js
 node test/changelog.js
+node test/registry.js
 node test/diagrams.js
 npm run build
 npm run build:test

@@ -39,6 +39,15 @@ export interface GameMeta {
   tagline: string;
   /** One sentence, for the index card. */
   rules: string;
+  /*
+   * The colour that identifies the game on the index -- its dot and the stripe
+   * down the side of its card. It has to be distinct from every other game's,
+   * which is not something the type can say: Patch and Lamplight were both
+   * added by copying the entry above them, accent included, and for two
+   * releases three of the four cards were drawn in the same amber. Nobody
+   * noticed, because each card looks right on its own. test/registry.js now
+   * asserts the four are far enough apart to tell apart.
+   */
   accent: string;
   ready: boolean;
   howTo: HowTo;
@@ -120,7 +129,7 @@ export const GAMES: GameMeta[] = [
     name: 'Patch',
     tagline: 'A box around every number, covering the board.',
     rules: 'Draw a rectangle around every number, covering exactly as many squares as the number says, until the whole board is covered.',
-    accent: '#f5b544',
+    accent: '#3ddc97',
     ready: true,
     howTo: {
       help: 'Draw a rectangle around every number. The rectangle must cover exactly as many squares as the number says, and hold that one number and no other. When the rectangles cover the whole board without overlapping, the puzzle is done. Drag a box on the board to draw one, tap a patch to take it back. With the keyboard, arrows move, enter sets a corner, arrows stretch the box and enter again draws it; U undoes, H gives a hint, R restarts.',
@@ -153,7 +162,7 @@ export const GAMES: GameMeta[] = [
     name: 'Lamplight',
     tagline: 'Every dark square lit, and none lit twice.',
     rules: 'Turn each lamp so its beam lights every dark square on the board exactly once.',
-    accent: '#f5b544',
+    accent: '#c08bff',
     ready: true,
     howTo: {
       help: 'Every lamp shines one way — up, down, left or right — and its beam runs until it meets a wall, another lamp, or the edge. Turn the lamps so every square that is not a wall ends up lit, and none is lit twice. Drag out of a lamp to aim it, or tap it to turn it round the compass. With the keyboard, space steps between lamps, the arrows shine the one you are on, enter turns it; U undoes, H gives a hint, R restarts.',
